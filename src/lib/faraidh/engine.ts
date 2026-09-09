@@ -144,7 +144,7 @@ export class FaraidhEngine {
       })
     }
 
-    const kodeAktif = () => [...aktifMap.values()].filter(a => a.aktif).map(a => a.kode)
+    const kodeAktif = () => Array.from(aktifMap.values()).filter(a => a.aktif).map(a => a.kode)
 
     // ─── FASE 1: MAWANI' AL-IRTS ─────────────────────────────
     const gugurHalangan: string[] = []
@@ -447,7 +447,7 @@ export class FaraidhEngine {
       total_saham += aw.saham_total
     }
 
-    const ada_ashabah = [...aktifMap.values()].some(
+    const ada_ashabah = Array.from(aktifMap.values()).some(
       a => a.aktif && (a.pecahan_aktif === 'sisa' || a.pecahan_aktif === 'sisa_2:1' || a.pecahan_aktif === '1/6+sisa')
     )
 
@@ -472,7 +472,7 @@ export class FaraidhEngine {
       // RADD
       status_penyelesaian = 'radd'
       // Yang berhak radd (semua kecuali suami/istri)
-      const berhak_radd = [...aktifMap.values()].filter(
+      const berhak_radd = Array.from(aktifMap.values()).filter(
         a => a.aktif && a.saham_total && a.kode !== 'suami' && a.kode !== 'istri'
       )
       const total_saham_radd = berhak_radd.reduce((s, a) => s + (a.saham_total || 0), 0)
@@ -492,8 +492,8 @@ export class FaraidhEngine {
     } else {
       log.push({
         fase: 7,
-        judul: status_penyelesaian === 'kasus_khusus' ? 'Kasus Khusus — Lihat Log Fase 2' : "'Adilah — Perhitungan Normal",
-        judul_arab: status_penyelesaian === 'kasus_khusus' ? '' : "المسألة العادلة",
+        judul: "'Adilah — Perhitungan Normal",
+        judul_arab: "المسألة العادلة",
         penjelasan:
           ada_ashabah
             ? `Sisa ${sisa_saham} saham diberikan ke Ashabah. Perhitungan 'Adilah (normal).`
@@ -502,7 +502,7 @@ export class FaraidhEngine {
     }
 
     // Hitung saham Ashabah
-    const ashabah_aktif = [...aktifMap.values()].filter(
+    const ashabah_aktif = Array.from(aktifMap.values()).filter(
       a => a.aktif && (a.pecahan_aktif === 'sisa' || a.pecahan_aktif === 'sisa_2:1' || a.pecahan_aktif === '1/6+sisa')
     )
 
