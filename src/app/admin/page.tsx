@@ -1715,16 +1715,66 @@ export default function AdminPage() {
                         </div>
                       )}
 
+                      {/* TASHIH & MAHFUDZAT BREAKDOWN BOX */}
                       {testResult.juz_sahm > 1 && (
-                        <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-1">
-                          <div className="font-extrabold flex items-center gap-1.5">
-                            <Wrench className="w-4 h-4 text-blue-700" />
-                            <span>Penjelasan Tashih Masail & Mahfudzat (تصحيح المسائل والمحفوظات):</span>
+                        <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950 space-y-3">
+                          <div className="flex items-center justify-between border-b border-blue-200/80 pb-2">
+                            <div className="font-extrabold flex items-center gap-1.5 text-blue-900">
+                              <Wrench className="w-4 h-4 text-blue-700" />
+                              <span>Rincian Kaidah Tashih al-Masail & Mahfudzat (الانكسار والمحفوظات)</span>
+                            </div>
+                            <span className="badge-blue text-[11px] font-extrabold">
+                              Juz'us Sahm (جزء السهم) = {testResult.juz_sahm}
+                            </span>
                           </div>
-                          <p className="leading-relaxed">
-                            Terjadi pecahan saham pada individu ahli waris (Inkisar). Maka dicari faktor pengali <strong>Juz'us Sahm = {testResult.juz_sahm}</strong>.
-                            Rumus Tashih: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200 font-bold">{testResult.asal_masalah} × {testResult.juz_sahm} = {testResult.asal_masalah_tashih}</code>.
+                          
+                          <p className="text-slate-700 leading-relaxed">
+                            Terjadi <strong>Inkisâr (انكسار)</strong> karena saham awal tidak habis dibagi rata dengan jumlah orang dalam kelompok. Berikut penentuan <em>Mahfudz</em> dan faktor pengali <em>Juz'us Sahm</em>:
                           </p>
+
+                          {testResult.mahfudzat_detail && testResult.mahfudzat_detail.length > 0 && (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs text-left bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                <thead className="bg-blue-100/70 text-blue-900 font-bold border-b border-blue-200">
+                                  <tr>
+                                    <th className="px-3 py-2">Golongan Ahli Waris</th>
+                                    <th className="px-3 py-2 text-center">Saham Asal (السهام)</th>
+                                    <th className="px-3 py-2 text-center">Jumlah Jiwa (الرؤوس)</th>
+                                    <th className="px-3 py-2 text-center">Relasi Fikih (النسبة)</th>
+                                    <th className="px-3 py-2 text-center">Nilai Mahfudz (المحفوظ)</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-blue-100 text-slate-800 font-medium">
+                                  {testResult.mahfudzat_detail.map(md => (
+                                    <tr key={md.kode} className="hover:bg-blue-50/50">
+                                      <td className="px-3 py-2 font-bold text-slate-900">
+                                        {md.nama_id} <span className="text-arabic text-emerald-800">({md.nama_arab})</span>
+                                      </td>
+                                      <td className="px-3 py-2 text-center font-mono font-bold">{md.saham_asal}</td>
+                                      <td className="px-3 py-2 text-center font-mono font-bold">{md.kepala} Jiwa</td>
+                                      <td className="px-3 py-2 text-center">
+                                        <span className="px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-800">
+                                          {md.relasi === 'muwafaqah' ? 'Muwafaqah (توافق)' : 'Mubayanah (تباين)'}
+                                        </span>
+                                      </td>
+                                      <td className="px-3 py-2 text-center font-mono font-extrabold text-blue-900 text-sm">
+                                        {md.mahfudz}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          <div className="p-2.5 bg-white rounded-lg border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
+                            <span className="text-slate-700">
+                              <strong>Faktor Pengali:</strong> Juz'us Sahm = <strong className="text-blue-800">{testResult.juz_sahm}</strong>
+                            </span>
+                            <span className="text-blue-900 font-bold">
+                              Asal Masalah Tashih: {testResult.asal_masalah} × {testResult.juz_sahm} = {testResult.asal_masalah_tashih}
+                            </span>
+                          </div>
                         </div>
                       )}
 
@@ -1752,7 +1802,7 @@ export default function AdminPage() {
                               <th className="py-2.5 px-3 text-center">Jumlah (العدد)</th>
                               <th className="py-2.5 px-3 text-center">Porsi Syar'i (الفرض)</th>
                               <th className="py-2.5 px-3">Syarat & Kaidah Fikih (العلة والشروط)</th>
-                              <th className="py-2.5 px-3 text-center">Saham (السهام)</th>
+                              <th className="py-2.5 px-3 text-center">Rincian Saham (السهام والتصحيح)</th>
                               <th className="py-2.5 px-3 text-center">Persentase (%)</th>
                             </tr>
                           </thead>
@@ -1774,8 +1824,20 @@ export default function AdminPage() {
                                 <td className="py-2.5 px-3 text-slate-600 text-[11px]">
                                   {h.alasan_syarat || h.keterangan || '-'}
                                 </td>
-                                <td className="py-2.5 px-3 text-center font-extrabold text-slate-900 text-sm">
-                                  {h.saham_total_kelompok}
+                                <td className="py-2.5 px-3 text-center">
+                                  <div className="font-extrabold text-slate-900 text-sm font-mono">
+                                    {h.saham_total_kelompok} Saham
+                                  </div>
+                                  {testResult.juz_sahm > 1 && h.saham_asal !== undefined && (
+                                    <div className="text-[11px] font-mono text-blue-900 font-bold mt-0.5 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 inline-block">
+                                      {h.saham_asal} × {testResult.juz_sahm} = {h.saham_total_kelompok}
+                                    </div>
+                                  )}
+                                  {h.jumlah_orang > 1 && (
+                                    <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                                      {h.saham_total_kelompok} ÷ {h.jumlah_orang} = <strong className="text-slate-800 font-bold">{h.saham_per_orang}</strong> /jiwa
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="py-2.5 px-3 text-center font-bold text-slate-600">
                                   {testResult.total_harta_bersih > 0 && h.nominal_total_kelompok
