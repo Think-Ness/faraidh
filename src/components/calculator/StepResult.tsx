@@ -6,7 +6,6 @@ import {
   XCircle,
   MinusCircle,
   Scale,
-  Hash,
   TrendingUp,
   TrendingDown,
   RotateCcw,
@@ -17,16 +16,13 @@ import {
   Check,
   Coins,
   ShieldAlert,
-  Percent,
   PieChart,
-  ArrowLeft,
-  BookOpen,
   Info,
   Layers,
-  HelpCircle,
-  Calculator
+  Banknote,
+  BookOpen
 } from 'lucide-react'
-import type { HasilKalkulasi, HasilPerAhliWaris } from '@/lib/faraidh/types'
+import type { HasilKalkulasi } from '@/lib/faraidh/types'
 import LogEdukasiPanel from './LogEdukasiPanel'
 
 const STATUS_CONFIG: Record<string, { label: string; labelArab: string; badge: string; icon: typeof Scale }> = {
@@ -41,15 +37,12 @@ const STATUS_CONFIG: Record<string, { label: string; labelArab: string; badge: s
 }
 
 const STATUS_PENYELESAIAN_CONFIG = {
-  adilah:      { label: "'Adilah (Saham Sempurna)", labelArab: 'عادلة', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
+  adilah:      { label: "'Adilah (Saham Pas)", labelArab: 'عادلة', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
   aul:         { label: "'Aul (Saham Membengkak)", labelArab: 'عائلة', color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', icon: TrendingUp },
-  radd:        { label: 'Radd (Sisa Saham Dikembalikan)', labelArab: 'ردية', color: 'text-amber-800', bg: 'bg-amber-50 border-amber-200', icon: TrendingDown },
+  radd:        { label: 'Radd (Sisa Dikembalikan)', labelArab: 'ردية', color: 'text-amber-800', bg: 'bg-amber-50 border-amber-200', icon: TrendingDown },
   tashih:      { label: 'Tashih (Koreksi Pecahan)', labelArab: 'مصححة', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: Wrench },
   kasus_khusus:{ label: 'Kasus Khusus Syar\'i', labelArab: 'مسألة خاصة', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', icon: Sparkles },
 }
-
-const formatRp = (n?: number) =>
-  n !== undefined ? `Rp ${Math.round(n).toLocaleString('id-ID')}` : '—'
 
 const SHARE_COLORS = [
   'bg-emerald-600',
@@ -165,7 +158,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
           </div>
         </div>
 
-        {/* ─── 4 PEDAGOGICAL SUMMARY STAT CARDS ─── */}
+        {/* ─── 4 SUMMARY STAT CARDS ─── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           
           {/* Card 1: Asal Masalah & Perpindahan */}
@@ -175,7 +168,6 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
               <span className="text-arabic text-xs font-bold text-slate-600">أصل المسألة</span>
             </div>
             
-            {/* Display transitions like 6 -> 7 (Aul), 6 -> 4 (Radd), or 6 x 2 = 12 (Tashih) */}
             <div className="flex items-baseline gap-1.5 flex-wrap">
               {hasil.status_penyelesaian === 'aul' && hasil.asal_masalah_aul ? (
                 <div className="flex items-center gap-1.5">
@@ -295,7 +287,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            Terjadi <strong>Inkisâr</strong> (pembagian saham yang tidak habis dibagi sejumlah kepala ahli waris). Berikut adalah rincian penentuan <em>Mahfudz</em> per kelompok dan <em>Juz'us Sahm</em> sesuai kurikulum Faraidh:
+            Terjadi <strong>Inkisâr</strong> (pembagian saham tidak habis dibagi kepala pewaris). Berikut rincian penentuan <em>Mahfudz</em> per kelompok dan <em>Juz'us Sahm</em> sesuai kurikulum Faraidh:
           </p>
 
           <div className="overflow-x-auto">
@@ -313,7 +305,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
                 {hasil.mahfudzat_detail.map(md => (
                   <tr key={md.kode} className="hover:bg-blue-50/40">
                     <td className="px-3 py-2.5 font-semibold text-slate-900">
-                      {md.nama_id} <span className="text-arabic text-emerald-800">({md.nama_arab})</span>
+                      {md.nama_id} <span className="text-arabic text-emerald-800 font-bold">({md.nama_arab})</span>
                     </td>
                     <td className="px-3 py-2.5 text-center font-mono font-bold text-slate-800">
                       {md.saham_asal}
@@ -346,7 +338,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
         </div>
       )}
 
-      {/* ─── 3. PROPORTIONAL SHARE VISUALIZATION BAR ─────────────────── */}
+      {/* ─── 3. PROPORTIONAL SHARE BAR ───────────────────────────────── */}
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -359,7 +351,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
         </div>
 
         {/* Stacked Progress Bar */}
-        <div className="h-4 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner border border-slate-200">
+        <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner border border-slate-200">
           {berhakList.map((h, i) => {
             const pct = hasil.asal_masalah_tashih > 0
               ? ((h.saham_total_kelompok || 0) / hasil.asal_masalah_tashih) * 100
@@ -394,17 +386,22 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
         </div>
       </div>
 
-      {/* ─── 4. MAIN FARAIDH TABLE (JADWAL QISMAT AT-TIRKAH GONTOR) ──── */}
-      <div className="card space-y-4 overflow-hidden">
+      {/* ─── 4. TABEL 1: PEMBAGIAN SAHAM & KAIDAH FIKIH ──────────────── */}
+      <div className="card space-y-3.5 overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Scale className="w-4 h-4 text-emerald-700" />
-            <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-              Tabel Rinci Pembagian Saham & Nominal (جدول قسمة التركة)
-            </h3>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                1. Tabel Pembagian Saham & Kaidah Fikih
+              </h3>
+              <p className="text-xs text-slate-500">
+                Porsi pasti (Furudh), status Ashabah, syarat fikih, dan perolehan saham waris.
+              </p>
+            </div>
           </div>
-          <span className="text-arabic text-xs sm:text-sm text-emerald-800 font-bold">
-            الصف الثالث كونتور
+          <span className="text-arabic text-sm text-emerald-800 font-bold hidden sm:inline">
+            جدول السهام والتأصيل
           </span>
         </div>
 
@@ -412,37 +409,39 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
           <table className="w-full text-xs sm:text-sm text-left border-collapse">
             <thead className="bg-slate-50 border-y border-slate-200 text-slate-700">
               <tr>
-                <th className="px-4 sm:px-5 py-3 font-bold">Ahli Waris (الوارث)</th>
-                <th className="px-3 py-3 font-bold text-center">Jiwa (الرؤوس)</th>
-                <th className="px-3 py-3 font-bold text-center">Porsi (الفرض / العصبة)</th>
-                <th className="px-4 py-3 font-bold">Syarat & Alasan Fikih (الحالة)</th>
-                <th className="px-3 py-3 font-bold text-center">Saham (السهام)</th>
-                <th className="px-4 py-3 font-bold text-right">Total Bagian Golongan (نصيب الفئة)</th>
-                <th className="px-4 sm:px-5 py-3 font-bold text-right">Bagian Per Jiwa (نصيب الفرد)</th>
+                <th className="px-4 sm:px-5 py-2.5 font-bold">Ahli Waris (الوارث)</th>
+                <th className="px-3 py-2.5 font-bold text-center">Jiwa (الرؤوس)</th>
+                <th className="px-3 py-2.5 font-bold text-center">Porsi (الفرض / العصبة)</th>
+                <th className="px-4 py-2.5 font-bold">Syarat & Alasan Fikih (الحالة والشروط)</th>
+                <th className="px-3 py-2.5 font-bold text-center">Saham (السهام)</th>
+                <th className="px-4 sm:px-5 py-2.5 font-bold text-right">Porsi (%)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
               {berhakList.map(h => {
                 const cfg = STATUS_CONFIG[h.status] || STATUS_CONFIG.furudh
+                const pct = hasil.asal_masalah_tashih > 0
+                  ? ((h.saham_total_kelompok || 0) / hasil.asal_masalah_tashih) * 100
+                  : 0
+
                 return (
                   <tr key={h.kode} className="hover:bg-slate-50/80 transition-colors">
-                    
-                    {/* 1. Ahli Waris */}
-                    <td className="px-4 sm:px-5 py-3.5">
-                      <div className="font-bold text-slate-900 text-xs sm:text-sm">{h.nama_id}</div>
-                      <div className="text-arabic text-sm text-emerald-900 font-bold mt-0.5">{h.nama_arab}</div>
-                      <span className={`${cfg.badge} text-[10px] py-0 mt-1 inline-block`}>
+                    {/* Ahli Waris */}
+                    <td className="px-4 sm:px-5 py-3">
+                      <div className="font-bold text-slate-900">{h.nama_id}</div>
+                      <div className="text-arabic text-sm text-emerald-900 font-bold">{h.nama_arab}</div>
+                      <span className={`${cfg.badge} text-[10px] py-0 mt-0.5 inline-block`}>
                         {cfg.label}
                       </span>
                     </td>
 
-                    {/* 2. Jumlah Jiwa */}
-                    <td className="px-3 py-3.5 text-center font-mono font-bold text-slate-800">
+                    {/* Jiwa */}
+                    <td className="px-3 py-3 text-center font-mono font-bold text-slate-800">
                       {h.jumlah_orang}
                     </td>
 
-                    {/* 3. Porsi Furudh / Ashabah */}
-                    <td className="px-3 py-3.5 text-center">
+                    {/* Porsi */}
+                    <td className="px-3 py-3 text-center">
                       <div className="font-mono font-black text-amber-800 text-xs sm:text-sm">
                         {h.pecahan === 'sisa' ? 'Sisa (عصبة)'
                           : h.pecahan === 'sisa_2:1' ? 'Sisa 2:1'
@@ -454,13 +453,13 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
                       </div>
                     </td>
 
-                    {/* 4. Syarat & Alasan Fikih */}
-                    <td className="px-4 py-3.5 text-xs text-slate-600 leading-relaxed max-w-xs">
-                      {h.alasan_syarat || h.keterangan || 'Sesuai ketentuan hukum waris syar\'i.'}
+                    {/* Syarat & Alasan */}
+                    <td className="px-4 py-3 text-xs text-slate-600 leading-relaxed max-w-xs">
+                      {h.alasan_syarat || h.keterangan || 'Sesuai ketentuan kaidah waris syar\'i.'}
                     </td>
 
-                    {/* 5. Saham Total & Per Orang */}
-                    <td className="px-3 py-3.5 text-center tabular-nums">
+                    {/* Saham */}
+                    <td className="px-3 py-3 text-center tabular-nums">
                       <div className="font-bold font-mono text-emerald-700 text-sm sm:text-base">
                         {h.saham_total_kelompok}
                       </div>
@@ -471,58 +470,43 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
                       )}
                       {h.jumlah_orang > 1 && (
                         <div className="text-[10px] font-mono text-slate-500">
-                          {h.saham_per_orang} /orang
+                          {h.saham_per_orang} /jiwa
                         </div>
                       )}
                     </td>
 
-                    {/* 6. Total Bagian Golongan */}
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 text-xs sm:text-sm tabular-nums">
-                      Rp {h.nominal_total_kelompok?.toLocaleString('id-ID')}
-                    </td>
-
-                    {/* 7. Bagian Per Jiwa */}
-                    <td className="px-4 sm:px-5 py-3.5 text-right tabular-nums">
-                      <div className="font-mono font-black text-emerald-800 text-xs sm:text-sm">
-                        Rp {h.nominal_per_orang?.toLocaleString('id-ID')}
-                      </div>
-                      {h.jumlah_orang > 1 && (
-                        <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                          {h.rumus_nominal_per_orang}
-                        </div>
-                      )}
+                    {/* Porsi (%) */}
+                    <td className="px-4 sm:px-5 py-3 text-right font-mono font-bold text-slate-700">
+                      {pct.toFixed(1)}%
                     </td>
                   </tr>
                 )
               })}
             </tbody>
 
-            {/* Table Summary Footer */}
+            {/* Table Footer */}
             <tfoot className="bg-slate-50 border-t-2 border-slate-300 font-bold text-slate-900 text-xs sm:text-sm">
               <tr>
-                <td className="px-4 sm:px-5 py-3.5">
-                  <span>TOTAL PEMBAGIAN (المجموع)</span>
+                <td className="px-4 sm:px-5 py-2.5">
+                  <span>TOTAL SAHAM (المجموع)</span>
                 </td>
-                <td className="px-3 py-3.5 text-center font-mono">
+                <td className="px-3 py-2.5 text-center font-mono">
                   {totalJiwaBerhak} Jiwa
                 </td>
-                <td className="px-3 py-3.5 text-center text-arabic text-emerald-800 font-bold">
+                <td className="px-3 py-2.5 text-center text-arabic text-emerald-800 font-bold">
                   كامل التركة
                 </td>
-                <td className="px-4 py-3.5 text-slate-500 text-xs">
-                  {hasil.status_penyelesaian === 'adilah' ? 'Terbagi 100% Sempurna'
-                    : hasil.status_penyelesaian === 'aul' ? "Proporsional disesuaikan ('Aul)"
+                <td className="px-4 py-2.5 text-slate-500 text-xs">
+                  {hasil.status_penyelesaian === 'adilah' ? 'Terbagi Sempurna (100%)'
+                    : hasil.status_penyelesaian === 'aul' ? "Proporsional ('Aul)"
                     : hasil.status_penyelesaian === 'radd' ? 'Sisa dikembalikan (Radd)'
                     : 'Tashih disesuaikan'}
                 </td>
-                <td className="px-3 py-3.5 text-center font-mono text-emerald-700 text-sm sm:text-base">
+                <td className="px-3 py-2.5 text-center font-mono text-emerald-700 text-sm sm:text-base">
                   {totalSaham} Saham
                 </td>
-                <td className="px-4 py-3.5 text-right font-mono text-emerald-800">
-                  Rp {totalNominal.toLocaleString('id-ID')}
-                </td>
-                <td className="px-4 sm:px-5 py-3.5 text-right font-mono text-emerald-800">
-                  100% Pas
+                <td className="px-4 sm:px-5 py-2.5 text-right font-mono text-emerald-800">
+                  100%
                 </td>
               </tr>
             </tfoot>
@@ -530,7 +514,103 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
         </div>
       </div>
 
-      {/* ─── 5. AHLI WARIS TERHIJAB / GUGUR SECTION ───────────────────── */}
+      {/* ─── 5. TABEL 2: PEMBAGIAN NOMINAL HARTA BERSIH (RUPIAH) ─────── */}
+      <div className="card space-y-3.5 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Banknote className="w-4 h-4 text-emerald-700" />
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                2. Tabel Distribusi Nominal Harta Bersih (Rupiah)
+              </h3>
+              <p className="text-xs text-slate-500">
+                Nilai rupiah total per golongan dan nominal bersih per individu (per jiwa).
+              </p>
+            </div>
+          </div>
+          <span className="text-arabic text-sm text-emerald-800 font-bold hidden sm:inline">
+            جدول توزيع التركة النقدية
+          </span>
+        </div>
+
+        <div className="overflow-x-auto -mx-5 sm:-mx-6">
+          <table className="w-full text-xs sm:text-sm text-left border-collapse">
+            <thead className="bg-slate-50 border-y border-slate-200 text-slate-700">
+              <tr>
+                <th className="px-4 sm:px-5 py-2.5 font-bold">Ahli Waris (الوارث)</th>
+                <th className="px-3 py-2.5 font-bold text-center">Saham (السهام)</th>
+                <th className="px-4 py-2.5 font-bold">Rumus Hitung Saham</th>
+                <th className="px-4 py-2.5 font-bold text-right">Total Bagian Golongan (نصيب الفئة)</th>
+                <th className="px-4 sm:px-5 py-2.5 font-bold text-right">Bagian Bersih Per Orang (نصيب الفرد)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-800">
+              {berhakList.map(h => (
+                <tr key={h.kode} className="hover:bg-slate-50/80 transition-colors">
+                  {/* Ahli Waris */}
+                  <td className="px-4 sm:px-5 py-3">
+                    <div className="font-bold text-slate-900">{h.nama_id}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-arabic text-xs text-emerald-800 font-bold">{h.nama_arab}</span>
+                      <span className="badge-slate text-[10px] py-0">{h.jumlah_orang} Jiwa</span>
+                    </div>
+                  </td>
+
+                  {/* Saham */}
+                  <td className="px-3 py-3 text-center font-mono font-bold text-emerald-700 text-sm sm:text-base tabular-nums">
+                    {h.saham_total_kelompok}
+                  </td>
+
+                  {/* Rumus Hitung */}
+                  <td className="px-4 py-3 font-mono text-xs text-slate-600">
+                    ({h.saham_total_kelompok} ÷ {hasil.asal_masalah_tashih}) × Rp {hasil.total_harta_bersih.toLocaleString('id-ID')}
+                  </td>
+
+                  {/* Total Golongan */}
+                  <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 text-xs sm:text-sm tabular-nums">
+                    Rp {h.nominal_total_kelompok?.toLocaleString('id-ID')}
+                  </td>
+
+                  {/* Bagian Per Jiwa */}
+                  <td className="px-4 sm:px-5 py-3 text-right tabular-nums">
+                    <div className="font-mono font-black text-emerald-800 text-xs sm:text-sm">
+                      Rp {h.nominal_per_orang?.toLocaleString('id-ID')}
+                    </div>
+                    {h.jumlah_orang > 1 && (
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        {h.rumus_nominal_per_orang}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+
+            {/* Table Footer */}
+            <tfoot className="bg-slate-50 border-t-2 border-slate-300 font-bold text-slate-900 text-xs sm:text-sm">
+              <tr>
+                <td className="px-4 sm:px-5 py-2.5">
+                  <span>TOTAL HARTA TERBAGI (المجموع)</span>
+                </td>
+                <td className="px-3 py-2.5 text-center font-mono text-emerald-700">
+                  {totalSaham} Saham
+                </td>
+                <td className="px-4 py-2.5 text-xs text-slate-500 font-sans">
+                  Nilai 1 Saham = Rp {hasil.nilai_satu_saham?.toLocaleString('id-ID')}
+                </td>
+                <td className="px-4 py-2.5 text-right font-mono text-emerald-800 text-sm sm:text-base">
+                  Rp {totalNominal.toLocaleString('id-ID')}
+                </td>
+                <td className="px-4 sm:px-5 py-2.5 text-right font-mono text-emerald-800">
+                  100% Pas Terbagi
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ─── 6. AHLI WARIS TERHIJAB / GUGUR SECTION ───────────────────── */}
       {gugurList.length > 0 && (
         <div className="card bg-rose-50/40 border border-rose-200 space-y-3">
           <div className="flex items-center justify-between border-b border-rose-200/80 pb-2.5">
@@ -546,7 +626,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            Berdasarkan kaidah <em>Hijab Hirman</em> (الأقرب يحجب الأبعد) dan <em>Mawani' al-Irts</em>, kerabat di bawah ini gugur hak warisnya:
+            Berdasarkan kaidah <em>Hijab Hirman</em> (الأقرب يحجب الأبعد) dan <em>Mawani' al-Irts</em>, kerabat di bawah ini tidak mendapat warisan:
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -571,7 +651,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
         </div>
       )}
 
-      {/* ─── 6. DETAIL 9 FASE DERIVASI LOG (ACCORDION) ───────────────── */}
+      {/* ─── 7. DETAIL 9 FASE DERIVASI LOG (ACCORDION) ───────────────── */}
       <div className="card space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -594,7 +674,7 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
         )}
       </div>
 
-      {/* ─── 7. RESET & NEW CALCULATION BUTTON ───────────────────────── */}
+      {/* ─── 8. RESET & NEW CALCULATION BUTTON ───────────────────────── */}
       <div className="pt-2">
         <button
           onClick={onReset}
