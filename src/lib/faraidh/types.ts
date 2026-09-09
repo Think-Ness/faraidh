@@ -95,6 +95,17 @@ export type StatusHasil =
   | 'gugur_hijab'
   | 'kasus_khusus'
 
+export interface MahfudzDetail {
+  kode: string
+  nama_id: string
+  nama_arab: string
+  saham_asal: number
+  kepala: number
+  relasi: 'mubayanah' | 'muwafaqah'
+  relasi_arab: string
+  mahfudz: number
+}
+
 export interface HasilPerAhliWaris {
   kode: string
   nama_id: string
@@ -103,10 +114,16 @@ export interface HasilPerAhliWaris {
   jumlah_orang: number
   status: StatusHasil
   pecahan?: string
+  pecahan_arab?: string
+  alasan_syarat?: string
+  saham_asal?: number
+  mahfudz?: number
+  saham_tashih?: number
   saham_per_orang?: number
   saham_total_kelompok?: number
   nominal_per_orang?: number
   nominal_total_kelompok?: number
+  rumus_nominal_per_orang?: string
   keterangan?: string
   alasan_gugur?: string
 }
@@ -133,11 +150,17 @@ export interface HasilKalkulasi {
   // Kasus Khusus (jika ada)
   kasus_khusus_aktif?: string
 
-  // Asal Masalah
+  // Asal Masalah & Perpindahan (Takhrij al-Mas'alah)
+  asal_masalah_pokok: number
   asal_masalah: number
+  asal_masalah_aul?: number
+  asal_masalah_radd?: number
   asal_masalah_tashih: number
   juz_sahm: number
+  nilai_satu_saham: number
   status_penyelesaian: StatusPenyelesaian
+  mahfudzat_detail?: MahfudzDetail[]
+  penjelasan_perpindahan?: string
 
   // Hasil per ahli waris
   hasil: HasilPerAhliWaris[]

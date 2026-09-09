@@ -56,6 +56,8 @@ interface AhliWarisAktif {
   pecahan_aktif?: string
   saham_per_orang?: number
   saham_total?: number
+  saham_asal?: number
+  mahfudz?: number
   jenis_ashabah?: 'bin_nafsih' | 'bil_ghair' | 'maal_ghair'
 }
 
@@ -440,6 +442,11 @@ export class FaraidhEngine {
       ],
     })
 
+    const asal_masalah_pokok = asal_masalah
+    let asal_masalah_aul: number | undefined = undefined
+    let asal_masalah_radd: number | undefined = undefined
+    let penjelasan_perpindahan = ''
+
     // ─── FASE 7: 'AUL / RADD ──────────────────────────────────
     let total_saham = 0
     for (const [, aw] of aktifMap) {
@@ -456,12 +463,15 @@ export class FaraidhEngine {
 
     if (kasusKhususAktif) {
       status_penyelesaian = 'kasus_khusus'
+      penjelasan_perpindahan = 'Penyelesaian mengacu pada kaidah Masalah Khusus (Al-Gharrawain / Al-Musytarakah / Al-Akdariyyah).'
     } else if (total_saham > asal_masalah) {
       // 'AUL
       const asal_lama = asal_masalah
+      asal_masalah_aul = total_saham
       asal_masalah = total_saham
       status_penyelesaian = 'aul'
       sisa_saham = 0
+      penjelasan_perpindahan = `Asal Masalah ${asal_lama} mengalami 'Aul (عالت) membengkak menjadi ${asal_masalah} karena total saham (${total_saham}) melebihi Asal Masalah.`
       log.push({
         fase: 7,
         judul: "'Aul — Saham Membengkak",
@@ -471,16 +481,14 @@ export class FaraidhEngine {
     } else if (sisa_saham > 0 && !ada_ashabah) {
       // RADD
       status_penyelesaian = 'radd'
-      // Yang berhak radd (semua kecuali suami/istri)
       const berhak_radd = Array.from(aktifMap.values()).filter(
         a => a.aktif && a.saham_total && a.kode !== 'suami' && a.kode !== 'istri'
       )
       const total_saham_radd = berhak_radd.reduce((s, a) => s + (a.saham_total || 0), 0)
       const asal_radd = total_saham_radd
-
-      // Kalau ada suami/istri: mereka tidak dapat radd, asal masalah = total_saham_radd
-      // Kalau tidak ada suami/istri: asal masalah = total_saham_radd
-      asal_masalah = asal_radd > 0 ? asal_radd : asal_masalah
+      asal_masalah_radd = asal_radd > 0 ? asal_radd : asal_masalah
+      asal_masalah = asal_masalah_radd
+      penjelasan_perpindahan = `Asal Masalah ${asal_masalah_pokok} mengalami Radd (ردت) disesuaikan menjadi ${asal_masalah} karena ada sisa ${sisa_saham} saham dan tidak ada penerima Ashabah.`
 
       log.push({
         fase: 7,
@@ -490,6 +498,7 @@ export class FaraidhEngine {
         detail: berhak_radd.map(a => `${a.nama_id}: Mendapat Radd proporsional dari saham ${a.saham_total}`),
       })
     } else {
+      penjelasan_perpindahan = `Asal Masalah ${asal_masalah_pokok} bersifat 'Adilah (مسألة عادلة). Jumlah saham tepat sama dengan Asal Masalah.`
       log.push({
         fase: 7,
         judul: "'Adilah — Perhitungan Normal",
@@ -516,13 +525,12 @@ export class FaraidhEngine {
     }
 
     if (ashabah_aktif.some(a => a.pecahan_aktif === 'sisa' || a.pecahan_aktif === 'sisa_2:1')) {
-      // Hitung total "kepala" ashabah (2:1 ratio)
       let total_kepala_ashabah = 0
       for (const aw of ashabah_aktif) {
         if (aw.pecahan_aktif === 'sisa') {
           total_kepala_ashabah += aw.jumlah_orang
         } else if (aw.pecahan_aktif === 'sisa_2:1') {
-          total_kepala_ashabah += aw.jumlah_orang  // +1 per kepala, akan dihitung 1:1 dengan penarik
+          total_kepala_ashabah += aw.jumlah_orang
         }
       }
 
@@ -531,8 +539,15 @@ export class FaraidhEngine {
         if (aw.pecahan_aktif === 'sisa' && !aw.saham_total) {
           aw.saham_total = saham_per_unit * aw.jumlah_orang
         } else if (aw.pecahan_aktif === 'sisa_2:1') {
-          aw.saham_total = saham_per_unit * aw.jumlah_orang  // Bil ghair: 1 per kepala (penarik sudah 2)
+          aw.saham_total = saham_per_unit * aw.jumlah_orang
         }
+      }
+    }
+
+    // Simpan saham asal sebelum Tashih
+    for (const [, aw] of aktifMap) {
+      if (aw.aktif && aw.saham_total) {
+        aw.saham_asal = Math.round(aw.saham_total)
       }
     }
 
@@ -540,14 +555,30 @@ export class FaraidhEngine {
     let asal_masalah_tashih = asal_masalah
     let juz_sahm = 1
     const mahfudzat: number[] = []
+    const mahfudzat_detail: import('./types').MahfudzDetail[] = []
 
     for (const [, aw] of aktifMap) {
       if (!aw.aktif || !aw.saham_total || aw.jumlah_orang <= 1) continue
       const saham = Math.round(aw.saham_total)
       const kepala = aw.jumlah_orang
       if (saham % kepala !== 0) {
+        const rel = gcd(saham, kepala) > 1 ? 'muwafaqah' : 'mubayanah'
+        const rel_arab = rel === 'muwafaqah' ? 'توافق' : 'تباين'
         const m = hitungMahfudzat(saham, kepala)
-        if (m > 1) mahfudzat.push(m)
+        if (m > 1) {
+          mahfudzat.push(m)
+          mahfudzat_detail.push({
+            kode: aw.kode,
+            nama_id: aw.nama_id,
+            nama_arab: aw.nama_arab,
+            saham_asal: saham,
+            kepala,
+            relasi: rel,
+            relasi_arab: rel_arab,
+            mahfudz: m,
+          })
+          aw.mahfudz = m
+        }
       }
     }
 
@@ -556,18 +587,19 @@ export class FaraidhEngine {
       asal_masalah_tashih = asal_masalah * juz_sahm
       status_penyelesaian = status_penyelesaian === 'adilah' ? 'tashih' : status_penyelesaian
 
-      // Kalikan semua saham
       for (const [, aw] of aktifMap) {
         if (!aw.aktif || !aw.saham_total) continue
         aw.saham_total = aw.saham_total * juz_sahm
       }
 
+      penjelasan_perpindahan += `\nDilakukan Tashih Mas'alah karena inkisâr pada ${mahfudzat_detail.length} kelompok. Juz' as-Sahm = ${juz_sahm}. Asal Masalah Tashih = ${asal_masalah} × ${juz_sahm} = ${asal_masalah_tashih}.`
+
       log.push({
         fase: 8,
         judul: "Tashih al-Masail — Penyelesaian Inkisâr (Pecahan Tidak Habis Bagi)",
         judul_arab: "تصحيح المسألة",
-        penjelasan: `Ditemukan inkisâr (saham tidak habis dibagi kepala pewaris). Mahfudzat = [${mahfudzat.join(', ')}]. Juz' as-Sahm (Pengali) = ${juz_sahm}. Asal Masalah Tashih = ${asal_masalah} × ${juz_sahm} = ${asal_masalah_tashih}.`,
-        detail: mahfudzat.map((m, i) => `Mahfudzat ${i + 1}: ${m}`),
+        penjelasan: `Ditemukan inkisâr pada ${mahfudzat_detail.length} kelompok ahli waris. Mahfudzat = [${mahfudzat.join(', ')}]. Juz' as-Sahm (Pengali) = ${juz_sahm}. Asal Masalah Tashih = ${asal_masalah} × ${juz_sahm} = ${asal_masalah_tashih}.`,
+        detail: mahfudzat_detail.map(md => `${md.nama_id} (Saham ${md.saham_asal}, ${md.kepala} Jiwa): Relasi ${md.relasi} (${md.relasi_arab}) → Mahfudz = ${md.mahfudz}`),
       })
     } else {
       log.push({
@@ -580,6 +612,84 @@ export class FaraidhEngine {
 
     // ─── FASE 9: KALKULASI NOMINAL AKHIR ─────────────────────
     const hasil: HasilPerAhliWaris[] = []
+    const nilai_satu_saham = asal_masalah_tashih > 0 ? harta_bersih / asal_masalah_tashih : 0
+
+    const pecahanArabMap: Record<string, string> = {
+      '1/2': 'النصف',
+      '1/4': 'الربع',
+      '1/8': 'الثمن',
+      '2/3': 'الثلثان',
+      '1/3': 'الثلث',
+      '1/6': 'السدس',
+      'sisa': 'عصبة (الباقي)',
+      'sisa_2:1': 'عصبة بالغير (٢:١)',
+      '1/6+sisa': 'السدس + الباقي',
+      '1/3_gabungan': 'الثلث (مشترك)',
+    }
+
+    const generateAlasanSyarat = (aw: AhliWarisAktif, listKode: string[]): string => {
+      const hasAnakLk = listKode.includes('anak_lk')
+      const hasAnakPr = listKode.includes('anak_pr')
+      const hasCucuLk = listKode.includes('cucu_lk')
+      const hasCucuPr = listKode.includes('cucu_pr')
+      const hasFaru = hasAnakLk || hasAnakPr || hasCucuLk || hasCucuPr
+
+      if (aw.kode === 'suami') {
+        return hasFaru ? 'Mendapat 1/4 karena ada keturunan (anak/cucu) pewaris.' : 'Mendapat 1/2 karena tidak ada keturunan (anak/cucu) pewaris.'
+      }
+      if (aw.kode === 'istri') {
+        return hasFaru ? `Mendapat 1/8${aw.jumlah_orang > 1 ? ' (dibagi rata)' : ''} karena ada keturunan pewaris.` : `Mendapat 1/4${aw.jumlah_orang > 1 ? ' (dibagi rata)' : ''} karena tidak ada keturunan pewaris.`
+      }
+      if (aw.kode === 'anak_lk') {
+        return 'Ashabah bin-nafsih (mengambil seluruh sisa harta setelah ashabul furudh).'
+      }
+      if (aw.kode === 'anak_pr') {
+        if (hasAnakLk) return 'Ashabah bil-ghair bersama anak laki-laki dengan rasio 2:1.'
+        if (aw.jumlah_orang > 1) return 'Mendapat 2/3 karena berjumlah 2 orang atau lebih tanpa anak laki-laki.'
+        return 'Mendapat 1/2 karena hanya 1 orang (tunggal) tanpa anak laki-laki.'
+      }
+      if (aw.kode === 'ayah') {
+        if (hasAnakLk || hasCucuLk) return 'Mendapat 1/6 pasti karena ada keturunan laki-laki.'
+        if (hasAnakPr || hasCucuPr) return 'Mendapat 1/6 + Sisa karena ada keturunan perempuan.'
+        return 'Ashabah bin-nafsih (mengambil seluruh sisa harta karena tidak ada keturunan).'
+      }
+      if (aw.kode === 'ibu') {
+        if (kasusKhususAktif?.includes('gharrawain')) return 'Mendapat 1/3 dari Sisa (Al-Gharrawain) bersama suami/istri dan ayah.'
+        const ikhwahCount = (aktifMap.get('saudara_lk_kandung')?.jumlah_orang || 0) +
+                            (aktifMap.get('saudari_kandung')?.jumlah_orang || 0) +
+                            (aktifMap.get('saudara_lk_seayah')?.jumlah_orang || 0) +
+                            (aktifMap.get('saudari_seayah')?.jumlah_orang || 0) +
+                            (aktifMap.get('saudara_lk_seibu')?.jumlah_orang || 0) +
+                            (aktifMap.get('saudari_seibu')?.jumlah_orang || 0)
+        if (hasFaru || ikhwahCount >= 2) return 'Mendapat 1/6 karena ada keturunan atau terdapat 2 orang/lebih saudara.'
+        return 'Mendapat 1/3 karena tidak ada keturunan dan tidak ada 2 orang/lebih saudara.'
+      }
+      if (aw.kode === 'cucu_lk') {
+        return 'Ashabah bin-nafsih menggantikan kedudukan anak laki-laki.'
+      }
+      if (aw.kode === 'cucu_pr') {
+        if (hasCucuLk) return 'Ashabah bil-ghair bersama cucu laki-laki (2:1).'
+        if (hasAnakPr && !hasAnakLk) return 'Mendapat 1/6 sebagai pelengkap 2/3 (takmilah ats-tsulutsain) bersama 1 anak perempuan.'
+        if (aw.jumlah_orang > 1) return 'Mendapat 2/3 karena 2+ orang tanpa anak kandung dan tanpa cucu laki-laki.'
+        return 'Mendapat 1/2 karena tunggal tanpa anak kandung dan tanpa cucu laki-laki.'
+      }
+      if (aw.kode === 'saudara_lk_kandung') {
+        return 'Ashabah bin-nafsih setelah garis keturunan dan ayah.'
+      }
+      if (aw.kode === 'saudari_kandung') {
+        if (listKode.includes('saudara_lk_kandung')) return 'Ashabah bil-ghair bersama saudara laki-laki sekandung (2:1).'
+        if (hasAnakPr || hasCucuPr) return 'Ashabah ma\'al-ghair (menjadi ashabah bersama anak/cucu perempuan).'
+        if (aw.jumlah_orang > 1) return 'Mendapat 2/3 karena 2+ orang tanpa anak, ayah, atau saudara kandung laki-laki.'
+        return 'Mendapat 1/2 karena tunggal tanpa anak, ayah, atau saudara kandung laki-laki.'
+      }
+      if (aw.kode === 'saudara_lk_seibu' || aw.kode === 'saudari_seibu') {
+        if (aw.jumlah_orang > 1 || (aktifMap.get('saudara_lk_seibu')?.jumlah_orang || 0) + (aktifMap.get('saudari_seibu')?.jumlah_orang || 0) > 1) {
+          return 'Mendapat 1/3 dibagi rata secara setara (tanpa membedakan gender) tanpa keturunan & ayah.'
+        }
+        return 'Mendapat 1/6 karena 1 orang tunggal tanpa keturunan dan tanpa ayah/kakek.'
+      }
+      return aw.jenis_ashabah ? 'Menerima sisa harta berdasarkan kaidah Ashabah.' : 'Menerima bagian pasti Furudh Muqaddarah.'
+    }
 
     for (const [, aw] of aktifMap) {
       if (!aw.aktif) {
@@ -607,6 +717,10 @@ export class FaraidhEngine {
       else if (aw.jenis_ashabah === 'maal_ghair') statusHasil = 'ashabah_maal_ghair'
       else if (kasusKhususAktif) statusHasil = 'kasus_khusus'
 
+      const rumusNominal = aw.jumlah_orang > 1
+        ? `Rp ${Math.round(nominal_total).toLocaleString('id-ID')} ÷ ${aw.jumlah_orang} Jiwa = Rp ${Math.round(nominal_per_orang).toLocaleString('id-ID')}`
+        : `Rp ${Math.round(nominal_per_orang).toLocaleString('id-ID')}`
+
       hasil.push({
         kode: aw.kode,
         nama_id: aw.nama_id,
@@ -615,10 +729,16 @@ export class FaraidhEngine {
         jumlah_orang: aw.jumlah_orang,
         status: statusHasil,
         pecahan: aw.pecahan_aktif,
+        pecahan_arab: aw.pecahan_aktif ? (pecahanArabMap[aw.pecahan_aktif] || aw.pecahan_aktif) : '—',
+        alasan_syarat: generateAlasanSyarat(aw, kodeAktif()),
+        saham_asal: aw.saham_asal || (aw.saham_total ? Math.round(aw.saham_total / juz_sahm) : 0),
+        mahfudz: aw.mahfudz,
+        saham_tashih: Math.round(saham_total),
         saham_per_orang: Math.round(saham_per_orang * 100) / 100,
         saham_total_kelompok: Math.round(saham_total * 100) / 100,
         nominal_per_orang: Math.round(nominal_per_orang),
         nominal_total_kelompok: Math.round(nominal_total),
+        rumus_nominal_per_orang: rumusNominal,
         keterangan: aw.alasan_tidak_aktif,
       })
     }
@@ -627,7 +747,7 @@ export class FaraidhEngine {
       fase: 9,
       judul: 'Kalkulasi Nominal Akhir',
       judul_arab: 'حساب نصيب كل وارث',
-      penjelasan: `Harta Bersih Rp${harta_bersih.toLocaleString('id-ID')} dibagi berdasarkan Asal Masalah Tashih = ${asal_masalah_tashih}. Setiap saham bernilai Rp${Math.round(harta_bersih / asal_masalah_tashih).toLocaleString('id-ID')}.`,
+      penjelasan: `Harta Bersih Rp${harta_bersih.toLocaleString('id-ID')} dibagi berdasarkan Asal Masalah Tashih = ${asal_masalah_tashih}. Setiap 1 saham bernilai Rp${Math.round(nilai_satu_saham).toLocaleString('id-ID')}.`,
       detail: hasil
         .filter(h => !['gugur_hijab', 'gugur_halangan'].includes(h.status))
         .map(h => `${h.nama_id} (×${h.jumlah_orang}): ${h.saham_total_kelompok} saham = Rp${h.nominal_total_kelompok?.toLocaleString('id-ID')}`),
@@ -641,10 +761,16 @@ export class FaraidhEngine {
       wasiat: wasiat_efektif,
       total_harta_bersih: harta_bersih,
       kasus_khusus_aktif: kasusKhususAktif,
+      asal_masalah_pokok,
       asal_masalah,
+      asal_masalah_aul,
+      asal_masalah_radd,
       asal_masalah_tashih,
       juz_sahm,
+      nilai_satu_saham: Math.round(nilai_satu_saham),
       status_penyelesaian,
+      mahfudzat_detail: mahfudzat_detail.length > 0 ? mahfudzat_detail : undefined,
+      penjelasan_perpindahan,
       hasil,
       log_edukasi: log,
     }
