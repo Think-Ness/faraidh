@@ -168,25 +168,31 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
               <span className="text-arabic text-xs font-bold text-slate-600">أصل المسألة</span>
             </div>
             
-            <div className="flex items-baseline gap-1.5 flex-wrap">
+            <div className="flex items-baseline gap-1.5 flex-wrap" dir="ltr">
               {hasil.status_penyelesaian === 'aul' && hasil.asal_masalah_aul ? (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="line-through text-slate-400 font-mono text-base font-bold">
                     {hasil.asal_masalah_pokok}
                   </span>
-                  <span className="text-rose-600 text-xs font-bold">عالت إلى</span>
+                  <span className="text-rose-500 font-bold text-sm">➔</span>
                   <span className="text-rose-700 font-mono text-xl sm:text-2xl font-black">
                     {hasil.asal_masalah_aul}
                   </span>
+                  <span className="text-arabic text-[11px] font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded" dir="rtl">
+                    عالت إلى {hasil.asal_masalah_aul}
+                  </span>
                 </div>
               ) : hasil.status_penyelesaian === 'radd' && hasil.asal_masalah_radd ? (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="line-through text-slate-400 font-mono text-base font-bold">
                     {hasil.asal_masalah_pokok}
                   </span>
-                  <span className="text-amber-600 text-xs font-bold">ردت إلى</span>
+                  <span className="text-amber-500 font-bold text-sm">➔</span>
                   <span className="text-amber-800 font-mono text-xl sm:text-2xl font-black">
                     {hasil.asal_masalah_radd}
+                  </span>
+                  <span className="text-arabic text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded" dir="rtl">
+                    ردت إلى {hasil.asal_masalah_radd}
                   </span>
                 </div>
               ) : hasil.juz_sahm > 1 ? (
