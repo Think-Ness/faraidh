@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   BookOpen,
   Calculator,
@@ -13,6 +14,7 @@ import {
   Layers,
   ChevronRight,
   ShieldCheck,
+  Sliders,
 } from 'lucide-react'
 import StepIndicator from '@/components/ui/StepIndicator'
 import StepTirkah from '@/components/calculator/StepTirkah'
@@ -211,14 +213,26 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Arabic Calligraphy in Header */}
-          <div className="hidden sm:flex flex-col items-end">
-            <span className="text-arabic text-base text-emerald-800 font-bold leading-tight">
-              علم الفرائض والمواريث
-            </span>
-            <span className="text-[11px] text-slate-500">
-              بناءً على المنهج الدراسي لمعهد دار السلام كونتور
-            </span>
+          {/* Header Right (Arabic & Admin Link) */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-arabic text-base text-emerald-800 font-bold leading-tight">
+                علم الفرائض والمواريث
+              </span>
+              <span className="text-[11px] text-slate-500">
+                بناءً على المنهج الدراسي لمعهد دار السلام كونتور
+              </span>
+            </div>
+
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 text-xs font-bold transition-all shadow-2xs"
+              title="Masuk ke Panel Pengelola & Kaidah Fikih"
+            >
+              <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Panel Asatidz</span>
+              <span className="sm:hidden">Admin</span>
+            </Link>
           </div>
         </div>
       </header>
