@@ -32,6 +32,15 @@ import {
   Settings2,
   Check,
   Copy,
+  Plus,
+  Minus,
+  Trash2,
+  RotateCcw,
+  TrendingUp,
+  TrendingDown,
+  Wrench,
+  Coins,
+  PieChart,
 } from 'lucide-react'
 import { getAdminData, testAdminCalculation } from './actions'
 import type {
@@ -56,6 +65,173 @@ type AdminTab =
   | 'audit_trail'
   | 'test_engine'
 
+// ─── 4 Family Clusters for Easy Selection ─────────────────────────────
+const CLUSTERS = [
+  {
+    id: 'pasangan',
+    title: 'Pasangan',
+    titleArab: 'الزوجان',
+    color: 'border-emerald-200 bg-emerald-50/50 text-emerald-900',
+    icon: Users,
+    codes: ['suami', 'istri'],
+  },
+  {
+    id: 'furu',
+    title: 'Anak & Cucu (Al-Furu\')',
+    titleArab: 'الفروع (الأولاد وأولاد البنين)',
+    color: 'border-blue-200 bg-blue-50/50 text-blue-900',
+    icon: Layers,
+    codes: ['anak_lk', 'anak_pr', 'cucu_lk', 'cucu_pr'],
+  },
+  {
+    id: 'usul',
+    title: 'Orang Tua & Leluhur (Al-Ushul)',
+    titleArab: 'الأصول (الآباء والأمهات والأجداد)',
+    color: 'border-purple-200 bg-purple-50/50 text-purple-900',
+    icon: GraduationCap,
+    codes: ['ayah', 'ibu', 'kakek', 'nenek_ibu', 'nenek_ayah'],
+  },
+  {
+    id: 'hawasyi',
+    title: 'Saudara & Kerabat (Al-Hawasyi)',
+    titleArab: 'الحواشي (الإخوة والأعمام وبنوهم)',
+    color: 'border-amber-200 bg-amber-50/50 text-amber-900',
+    icon: Sparkles,
+    codes: [
+      'saudara_lk_kandung',
+      'saudari_kandung',
+      'saudara_lk_seayah',
+      'saudari_seayah',
+      'saudara_lk_seibu',
+      'saudari_seibu',
+      'keponakan_lk_kandung',
+      'keponakan_lk_seayah',
+      'paman_kandung',
+      'paman_seayah',
+      'sepupu_lk_paman_kandung',
+      'sepupu_lk_paman_seayah',
+      'mutiq',
+      'mutiqah',
+    ],
+  },
+]
+
+// ─── Preset Sandbox Scenarios ──────────────────────────────────────────
+const ADMIN_SANDBOX_PRESETS = [
+  {
+    label: "Kasus Normal ('Adilah)",
+    labelArab: 'المسألة العادلة (تساوي السهام مع الأصل)',
+    harta: 240_000_000,
+    desc: 'Suami + 2 Anak Pr + Ayah + Ibu (Asal Masalah 24)',
+    waris: [
+      { kode: 'suami', count: 1 },
+      { kode: 'anak_pr', count: 2 },
+      { kode: 'ayah', count: 1 },
+      { kode: 'ibu', count: 1 },
+    ],
+  },
+  {
+    label: "Kasus 'Aul (6 ➔ 7)",
+    labelArab: 'مسألة العول (عالت من 6 إلى 7)',
+    harta: 420_000_000,
+    desc: 'Suami + 2 Saudari Kandung + Ibu (6 ke 7)',
+    waris: [
+      { kode: 'suami', count: 1 },
+      { kode: 'saudari_kandung', count: 2 },
+      { kode: 'ibu', count: 1 },
+    ],
+  },
+  {
+    label: "Kasus 'Aul (12 ➔ 13)",
+    labelArab: 'مسألة العول (عالت من 12 إلى 13)',
+    harta: 390_000_000,
+    desc: 'Suami + Ibu + 2 Anak Perempuan (12 ke 13)',
+    waris: [
+      { kode: 'suami', count: 1 },
+      { kode: 'ibu', count: 1 },
+      { kode: 'anak_pr', count: 2 },
+    ],
+  },
+  {
+    label: "Kasus 'Aul (24 ➔ 27 / Minbariyyah)",
+    labelArab: 'المسألة المنبرية (عالت من 24 إلى 27)',
+    harta: 540_000_000,
+    desc: 'Istri + 2 Anak Pr + Ayah + Ibu (24 ke 27)',
+    waris: [
+      { kode: 'istri', count: 1 },
+      { kode: 'anak_pr', count: 2 },
+      { kode: 'ayah', count: 1 },
+      { kode: 'ibu', count: 1 },
+    ],
+  },
+  {
+    label: "Kasus Radd (Ibu + Anak Pr)",
+    labelArab: 'مسألة الرد (ردت من 6 إلى 4)',
+    harta: 200_000_000,
+    desc: 'Ibu + Anak Perempuan (Asal Masalah 6 ➔ Radd ke 4)',
+    waris: [
+      { kode: 'ibu', count: 1 },
+      { kode: 'anak_pr', count: 1 },
+    ],
+  },
+  {
+    label: "Kasus Inkisar (Tashih 2 Golongan)",
+    labelArab: 'تصحيح المسائل (انكسار على فريقين)',
+    harta: 360_000_000,
+    desc: '2 Istri + 4 Saudari Kandung (Perlu Mahfudzat)',
+    waris: [
+      { kode: 'istri', count: 2 },
+      { kode: 'saudari_kandung', count: 4 },
+    ],
+  },
+  {
+    label: "Al-Gharrawain (Al-Umariyyatain)",
+    labelArab: 'المسألة الغراوية (ثلث الباقي للأم)',
+    harta: 600_000_000,
+    desc: 'Suami + Ibu + Ayah (Ibu dapat 1/3 dari Sisa)',
+    waris: [
+      { kode: 'suami', count: 1 },
+      { kode: 'ibu', count: 1 },
+      { kode: 'ayah', count: 1 },
+    ],
+  },
+  {
+    label: "Al-Musytarakah (Al-Himariyah)",
+    labelArab: 'المسألة المشتركة / الحمارية',
+    harta: 360_000_000,
+    desc: 'Suami + Ibu + 2 Saudara Seibu + Saudara Kandung',
+    waris: [
+      { kode: 'suami', count: 1 },
+      { kode: 'ibu', count: 1 },
+      { kode: 'saudara_lk_seibu', count: 2 },
+      { kode: 'saudara_lk_kandung', count: 1 },
+    ],
+  },
+  {
+    label: "Al-Akdariyyah",
+    labelArab: 'المسألة الأكدرية',
+    harta: 540_000_000,
+    desc: 'Suami + Ibu + Kakek + Saudari Kandung',
+    waris: [
+      { kode: 'suami', count: 1 },
+      { kode: 'ibu', count: 1 },
+      { kode: 'kakek', count: 1 },
+      { kode: 'saudari_kandung', count: 1 },
+    ],
+  },
+]
+
+const STATUS_CONFIG: Record<string, { label: string; labelArab: string; badge: string }> = {
+  furudh:             { label: 'Ashabul Furudh', labelArab: 'فرض', badge: 'badge-emerald' },
+  ashabah_bin_nafsih: { label: 'Ashabah Bin-Nafsih', labelArab: 'عصبة بنفسه', badge: 'badge-blue' },
+  ashabah_bil_ghair:  { label: 'Ashabah Bil-Ghair', labelArab: 'عصبة بغيره', badge: 'badge-blue' },
+  ashabah_maal_ghair: { label: "Ashabah Ma'al-Ghair", labelArab: 'عصبة مع غيره', badge: 'badge-blue' },
+  radd:               { label: 'Penerima Radd', labelArab: 'رد', badge: 'badge-gold' },
+  gugur_halangan:     { label: 'Gugur (Mawani\')', labelArab: 'ممنوع من الإرث', badge: 'badge-red' },
+  gugur_hijab:        { label: 'Mahjub (Terhalang)', labelArab: 'محجوب حجب حرمان', badge: 'badge-red' },
+  kasus_khusus:       { label: 'Kasus Khusus', labelArab: 'مسألة خاصة', badge: 'badge-purple' },
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview')
   const [loading, setLoading] = useState(true)
@@ -66,7 +242,7 @@ export default function AdminPage() {
   const [selectedPenghalang, setSelectedPenghalang] = useState<string>('ALL')
   const [copiedText, setCopiedText] = useState<string | null>(null)
 
-  // Test Engine Sandbox State
+  // ─── Sandbox State ───────────────────────────────────────────────────
   const [testNama, setTestNama] = useState('Uji Coba Faraidh Admin')
   const [testHarta, setTestHarta] = useState(360000000)
   const [testSelectedWaris, setTestSelectedWaris] = useState<{ kode: string; count: number }[]>([
@@ -76,6 +252,7 @@ export default function AdminPage() {
   ])
   const [testResult, setTestResult] = useState<HasilKalkulasi | null>(null)
   const [testLoading, setTestLoading] = useState(false)
+  const [activeClusterTab, setActiveClusterTab] = useState<string>('all')
 
   const loadData = async () => {
     setLoading(true)
@@ -99,7 +276,56 @@ export default function AdminPage() {
     setTimeout(() => setCopiedText(null), 2000)
   }
 
+  // Update waris count with smart rules (e.g. Suami & Istri mutual exclusion)
+  const updateWarisCount = (kode: string, delta: number) => {
+    setTestSelectedWaris(prev => {
+      const existing = prev.find(p => p.kode === kode)
+      const currentCount = existing ? existing.count : 0
+      const nextCount = Math.max(0, currentCount + delta)
+
+      let updated = prev.filter(p => p.kode !== kode)
+      if (nextCount > 0) {
+        // Enforce single spouse gender
+        if (kode === 'suami') {
+          updated = updated.filter(p => p.kode !== 'istri')
+        } else if (kode === 'istri') {
+          updated = updated.filter(p => p.kode !== 'suami')
+        }
+        updated.push({ kode, count: nextCount })
+      }
+      return updated
+    })
+  }
+
+  const setWarisExact = (kode: string, count: number) => {
+    setTestSelectedWaris(prev => {
+      let updated = prev.filter(p => p.kode !== kode)
+      if (count > 0) {
+        if (kode === 'suami') {
+          updated = updated.filter(p => p.kode !== 'istri')
+        } else if (kode === 'istri') {
+          updated = updated.filter(p => p.kode !== 'suami')
+        }
+        updated.push({ kode, count })
+      }
+      return updated
+    })
+  }
+
+  const applyPreset = (preset: typeof ADMIN_SANDBOX_PRESETS[0]) => {
+    setTestNama(preset.label)
+    setTestHarta(preset.harta)
+    setTestSelectedWaris(preset.waris)
+    setTestResult(null)
+  }
+
+  const clearSandbox = () => {
+    setTestSelectedWaris([])
+    setTestResult(null)
+  }
+
   const handleRunTest = async () => {
+    if (testSelectedWaris.length === 0) return
     setTestLoading(true)
     try {
       const input: InputKasus = {
@@ -164,6 +390,10 @@ export default function AdminPage() {
       (terhalang?.nama_id.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
     return matchesPenghalang && matchesSearch
   })
+
+  // Group result items for Sandbox Output
+  const berhakList = testResult?.hasil.filter(h => !['gugur_halangan', 'gugur_hijab'].includes(h.status)) || []
+  const gugurList = testResult?.hasil.filter(h => ['gugur_halangan', 'gugur_hijab'].includes(h.status)) || []
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
@@ -334,7 +564,7 @@ export default function AdminPage() {
             }`}
           >
             <Play className="w-3.5 h-3.5" />
-            Sandbox Engine
+            Sandbox Engine Fiqh
           </button>
 
         </div>
@@ -523,7 +753,7 @@ export default function AdminPage() {
                     className="w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2"
                   >
                     <Play className="w-3.5 h-3.5" />
-                    Uji Coba di Sandbox Fiqh
+                    Buka Sandbox Engine Fiqh
                   </button>
                 </div>
               </div>
@@ -1146,147 +1376,541 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* TAB 9: SANDBOX LIVE TEST ENGINE                         */}
+        {/* TAB 9: SANDBOX LIVE TEST ENGINE (UPGRADED UI & FIQH)    */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === 'test_engine' && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             
-            <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Top Engine Action Bar */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xs">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Play className="w-5 h-5 text-emerald-600" />
-                  Sandbox Faraidh Engine (Uji Kaidah Fikih Langsung)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Uji coba kombinasi ahli waris dan periksa akurasi output Furudh, Asal Masalah, 'Aul, Radd, dan Tashih
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-700 flex items-center justify-center text-white">
+                    <Play className="w-4 h-4 fill-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                      <span>Sandbox Engine Faraidh (مختبر علم الفرائض)</span>
+                      <span className="badge-emerald text-[10px] font-bold">MODE ASATIDZ</span>
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Uji coba cepat kombinasi 25 ahli waris, analisis kaidah furudh, 'aul, radd, dan tashih masail
+                    </p>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={handleRunTest}
-                disabled={testLoading}
-                className="py-2 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-              >
-                <Play className={`w-3.5 h-3.5 ${testLoading ? 'animate-spin' : ''}`} />
-                Jalankan Kalkulasi Uji
-              </button>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={clearSandbox}
+                  className="py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset Form
+                </button>
+                <button
+                  onClick={handleRunTest}
+                  disabled={testLoading || testSelectedWaris.length === 0}
+                  className="py-2.5 px-5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-extrabold transition-all shadow-sm flex items-center gap-2"
+                >
+                  <Play className={`w-4 h-4 ${testLoading ? 'animate-spin' : 'fill-white'}`} />
+                  {testLoading ? 'Menghitung...' : 'Jalankan Analisis Fikih'}
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              
-              {/* Input Configuration Box */}
-              <div className="card p-5 space-y-4">
-                <h4 className="font-extrabold text-sm text-slate-900 pb-2 border-b border-slate-100">
-                  Konfigurasi Kasus Uji
-                </h4>
+            {/* Quick Preset Studi Kasus Bar */}
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                ⚡ Preset Cepat Studi Kasus Faraidh KMI:
+              </span>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {ADMIN_SANDBOX_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => applyPreset(preset)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 text-slate-700 hover:text-emerald-900 text-xs font-bold whitespace-nowrap transition-all flex flex-col text-left"
+                  >
+                    <span className="text-[11px]">{preset.label}</span>
+                    <span className="text-[10px] text-arabic text-emerald-800 font-bold">{preset.labelArab}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Nominal Tirkah Kotor (Rp)</label>
-                  <input
-                    type="number"
-                    value={testHarta}
-                    onChange={(e) => setTestHarta(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
-                  />
+            {/* Sandbox Main Work Area: 2 Columns */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* ─── LEFT COLUMN: CONFIGURATION (5 Cols) ───────────── */}
+              <div className="lg:col-span-5 space-y-4">
+                
+                {/* Nominal Tirkah Card */}
+                <div className="card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Coins className="w-4 h-4 text-emerald-600" />
+                      <span>Nominal Tirkah Bersih / التركة (Rp)</span>
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+                    <input
+                      type="number"
+                      value={testHarta}
+                      onChange={(e) => setTestHarta(Number(e.target.value))}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm font-extrabold text-slate-900 focus:outline-none focus:border-emerald-600 bg-white"
+                      placeholder="Contoh: 360000000"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto text-[10px]">
+                    {[120_000_000, 240_000_000, 360_000_000, 600_000_000, 1_200_000_000].map(amt => (
+                      <button
+                        key={amt}
+                        onClick={() => setTestHarta(amt)}
+                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold whitespace-nowrap"
+                      >
+                        {(amt / 1_000_000)} Jt
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Ahli Waris Terlibat</label>
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {(adminData?.ahliWaris || []).map((w: AhliWaris) => {
-                      const current = testSelectedWaris.find(s => s.kode === w.kode)
+                {/* Selected Ahli Waris Ribbon */}
+                <div className="card p-4 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-emerald-600" />
+                      <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">
+                        Ahli Waris Terpilih ({testSelectedWaris.length} Golongan)
+                      </h4>
+                    </div>
+                    {testSelectedWaris.length > 0 && (
+                      <button
+                        onClick={clearSandbox}
+                        className="text-[11px] text-rose-600 font-bold hover:underline"
+                      >
+                        Hapus Semua
+                      </button>
+                    )}
+                  </div>
+
+                  {testSelectedWaris.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {testSelectedWaris.map(sw => {
+                        const waris = ahliWarisKodeMap.get(sw.kode)
+                        return (
+                          <div
+                            key={sw.kode}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs"
+                          >
+                            <span className="font-extrabold text-slate-900">{waris?.nama_id}</span>
+                            <span className="text-arabic text-xs font-bold text-emerald-800">{waris?.nama_arab}</span>
+                            <span className="px-1.5 py-0.2 bg-emerald-700 text-white rounded font-extrabold text-[10px]">
+                              {sw.count}
+                            </span>
+                            <button
+                              onClick={() => setWarisExact(sw.kode, 0)}
+                              className="text-slate-400 hover:text-rose-600 ml-0.5"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic py-2 text-center">
+                      Belum ada ahli waris yang dipilih. Pilih dari kelompok di bawah:
+                    </p>
+                  )}
+                </div>
+
+                {/* Family Clusters Selector */}
+                <div className="card p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">
+                      Pilih Ahli Waris Berdasarkan Golongan
+                    </h4>
+                  </div>
+
+                  {/* 4 Cluster Accordions / Boxes */}
+                  <div className="space-y-3">
+                    {CLUSTERS.map(cluster => {
+                      const ClusterIcon = cluster.icon
+                      const clusterWaris = cluster.codes
+                        .map(kode => ahliWarisKodeMap.get(kode))
+                        .filter(Boolean) as AhliWaris[]
+
                       return (
-                        <div key={w.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 text-xs">
-                          <span className="font-semibold text-slate-800">{w.nama_id}</span>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              min="0"
-                              max="10"
-                              value={current?.count || 0}
-                              onChange={(e) => {
-                                const val = Number(e.target.value)
-                                setTestSelectedWaris(prev => {
-                                  const filtered = prev.filter(p => p.kode !== w.kode)
-                                  if (val > 0) {
-                                    return [...filtered, { kode: w.kode, count: val }]
-                                  }
-                                  return filtered
-                                })
-                              }}
-                              className="w-12 px-2 py-1 rounded border border-slate-200 text-center font-bold text-xs"
-                            />
-                            <span className="text-[10px] text-slate-400">org</span>
+                        <div key={cluster.id} className={`rounded-xl border p-3.5 ${cluster.color}`}>
+                          {/* Cluster Title */}
+                          <div className="flex items-center justify-between mb-2.5">
+                            <div className="flex items-center gap-2">
+                              <ClusterIcon className="w-4 h-4" />
+                              <span className="font-extrabold text-xs">{cluster.title}</span>
+                            </div>
+                            <span className="text-arabic text-sm font-bold">{cluster.titleArab}</span>
+                          </div>
+
+                          {/* Grid of Heirs */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {clusterWaris.map(w => {
+                              const active = testSelectedWaris.find(s => s.kode === w.kode)
+                              const count = active ? active.count : 0
+
+                              return (
+                                <div
+                                  key={w.kode}
+                                  className={`p-2 rounded-lg bg-white border transition-all flex items-center justify-between gap-1.5 ${
+                                    count > 0
+                                      ? 'border-emerald-500 shadow-xs ring-1 ring-emerald-500/20'
+                                      : 'border-slate-200 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-extrabold text-slate-900 truncate">
+                                      {w.nama_id}
+                                    </div>
+                                    <div className="text-arabic text-xs font-bold text-emerald-800">
+                                      {w.nama_arab}
+                                    </div>
+                                  </div>
+
+                                  {/* Stepper Buttons */}
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => updateWarisCount(w.kode, -1)}
+                                      disabled={count === 0}
+                                      className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700 flex items-center justify-center transition-colors"
+                                    >
+                                      <Minus className="w-3 h-3" />
+                                    </button>
+                                    <span className="w-5 text-center font-extrabold text-xs text-slate-900">
+                                      {count}
+                                    </span>
+                                    <button
+                                      onClick={() => updateWarisCount(w.kode, 1)}
+                                      className="w-6 h-6 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors shadow-2xs"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
                         </div>
                       )
                     })}
                   </div>
                 </div>
+
               </div>
 
-              {/* Output Result Box */}
-              <div className="card p-5 lg:col-span-2 space-y-4">
-                <h4 className="font-extrabold text-sm text-slate-900 pb-2 border-b border-slate-100 flex items-center justify-between">
-                  <span>Hasil Analisis Mesin Faraidh</span>
-                  {testResult && (
-                    <span className="badge-emerald text-xs">
-                      Status: {testResult.status_penyelesaian.toUpperCase()}
-                    </span>
-                  )}
-                </h4>
-
+              {/* ─── RIGHT COLUMN: DEEP DETAILED FIQH RESULTS (7 Cols) ─ */}
+              <div className="lg:col-span-7 space-y-4">
+                
                 {testResult ? (
-                  <div className="space-y-4">
-                    {/* Summary Metrics */}
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <span className="text-[10px] text-slate-500 font-bold block">Asal Masalah</span>
-                        <span className="text-base font-extrabold text-slate-900">{testResult.asal_masalah}</span>
+                  <div className="space-y-5 animate-fadeIn">
+                    
+                    {/* 1. Status Banner & Diagnosis Box */}
+                    <div className="card p-5 bg-white border border-slate-200 space-y-4">
+                      
+                      {/* Top Diagnostic Title */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Status Penyelesaian Faraidh (حالة المسألة)
+                          </span>
+                          <h4 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                            {testResult.status_penyelesaian === 'adilah' && <span>Kasus Normal ('Adilah / مسألة عادلة)</span>}
+                            {testResult.status_penyelesaian === 'aul' && <span>Kasus 'Aul (مسألة عائلة — Saham Membengkak)</span>}
+                            {testResult.status_penyelesaian === 'radd' && <span>Kasus Radd (مسألة ردية — Pengembalian Sisa)</span>}
+                            {testResult.status_penyelesaian === 'tashih' && <span>Kasus Tashih (مسألة مصححة — Koreksi Pecahan)</span>}
+                            {testResult.status_penyelesaian === 'kasus_khusus' && <span>Kasus Khusus (مسألة خاصة — Fatwa Shahabat)</span>}
+                          </h4>
+                        </div>
+
+                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border ${
+                          testResult.status_penyelesaian === 'aul' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                          testResult.status_penyelesaian === 'radd' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                          testResult.status_penyelesaian === 'tashih' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        }`}>
+                          {testResult.status_penyelesaian}
+                        </span>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <span className="text-[10px] text-slate-500 font-bold block">Tashih / Koreksi</span>
-                        <span className="text-base font-extrabold text-slate-900">{testResult.asal_masalah_tashih || '-'}</span>
+
+                      {/* 4 Pillars Grid (Asal Masalah, 'Aul/Radd, Tashih, Juz'us Sahm) */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                          <span className="text-[10px] text-slate-500 font-bold block">Asal Masalah Pokok</span>
+                          <span className="text-arabic text-xs text-slate-400 font-bold block">أصل المسألة</span>
+                          <span className="text-lg font-extrabold text-slate-900 mt-1 block">
+                            {testResult.asal_masalah_pokok}
+                          </span>
+                        </div>
+
+                        <div className={`p-3 rounded-xl border ${
+                          testResult.asal_masalah_aul ? 'bg-rose-50 border-rose-200 text-rose-900' :
+                          testResult.asal_masalah_radd ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                          'bg-slate-50 border-slate-200 text-slate-900'
+                        }`}>
+                          <span className="text-[10px] font-bold block">
+                            {testResult.asal_masalah_aul ? "Naik ('Aul) Ke" :
+                             testResult.asal_masalah_radd ? "Turun (Radd) Ke" :
+                             "Status Saham"}
+                          </span>
+                          <span className="text-arabic text-xs font-bold block">
+                            {testResult.asal_masalah_aul ? "عالت إلى" :
+                             testResult.asal_masalah_radd ? "ردت إلى" :
+                             "عادلة"}
+                          </span>
+                          <span className="text-lg font-extrabold mt-1 block">
+                            {testResult.asal_masalah_aul || testResult.asal_masalah_radd || testResult.asal_masalah_pokok}
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                          <span className="text-[10px] text-slate-500 font-bold block">Juz'us Sahm</span>
+                          <span className="text-arabic text-xs text-slate-400 font-bold block">جزء السهم</span>
+                          <span className="text-lg font-extrabold text-slate-900 mt-1 block">
+                            {testResult.juz_sahm}
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                          <span className="text-[10px] text-slate-500 font-bold block">Asal Masalah Akhir</span>
+                          <span className="text-arabic text-xs text-slate-400 font-bold block">المصحح النهائي</span>
+                          <span className="text-lg font-extrabold text-emerald-800 mt-1 block">
+                            {testResult.asal_masalah_tashih || testResult.asal_masalah_aul || testResult.asal_masalah_radd || testResult.asal_masalah_pokok}
+                          </span>
+                        </div>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <span className="text-[10px] text-slate-500 font-bold block">Juz'us Sahm</span>
-                        <span className="text-base font-extrabold text-slate-900">{testResult.juz_sahm}</span>
+
+                      {/* Explicit Explanations for 'Aul / Radd / Tashih */}
+                      {testResult.asal_masalah_aul && (
+                        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1">
+                          <div className="font-extrabold flex items-center gap-1.5">
+                            <TrendingUp className="w-4 h-4 text-rose-600" />
+                            <span>Penjelasan Kaidah 'Aul (بيان مسألة العول):</span>
+                          </div>
+                          <p className="leading-relaxed">
+                            Total saham furudh ahli waris (<strong className="font-bold">{testResult.asal_masalah_aul}</strong>) melebihi Asal Masalah pokok (<strong className="font-bold">{testResult.asal_masalah_pokok}</strong>). 
+                            Maka asal masalah dinaikkan secara syar'i dari <strong className="font-bold">{testResult.asal_masalah_pokok} ➔ {testResult.asal_masalah_aul}</strong> (<span className="text-arabic font-bold">عالت إلى {testResult.asal_masalah_aul}</span>) agar pembagian berkurang secara adil dan proporsional.
+                          </p>
+                        </div>
+                      )}
+
+                      {testResult.asal_masalah_radd && (
+                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1">
+                          <div className="font-extrabold flex items-center gap-1.5">
+                            <TrendingDown className="w-4 h-4 text-amber-700" />
+                            <span>Penjelasan Kaidah Radd (بيان مسألة الرد):</span>
+                          </div>
+                          <p className="leading-relaxed">
+                            Jumlah saham furudh (<strong className="font-bold">{testResult.asal_masalah_radd}</strong>) lebih kecil dari Asal Masalah pokok (<strong className="font-bold">{testResult.asal_masalah_pokok}</strong>) dan tidak ada ahli waris Ashabah. 
+                            Maka sisa harta dikembalikan (<span className="text-arabic font-bold">ردّت إلى {testResult.asal_masalah_radd}</span>) kepada dzawil furudh yang berhak.
+                          </p>
+                        </div>
+                      )}
+
+                      {testResult.juz_sahm > 1 && (
+                        <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-1">
+                          <div className="font-extrabold flex items-center gap-1.5">
+                            <Wrench className="w-4 h-4 text-blue-700" />
+                            <span>Penjelasan Tashih Masail & Mahfudzat (تصحيح المسائل والمحفوظات):</span>
+                          </div>
+                          <p className="leading-relaxed">
+                            Terjadi pecahan saham pada individu ahli waris (Inkisar). Maka dicari faktor pengali <strong>Juz'us Sahm = {testResult.juz_sahm}</strong>.
+                            Rumus Tashih: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200 font-bold">{testResult.asal_masalah} × {testResult.juz_sahm} = {testResult.asal_masalah_tashih}</code>.
+                          </p>
+                        </div>
+                      )}
+
+                    </div>
+
+                    {/* 2. TABEL 1: PEMBAGIAN SAHAM & KAIDAH FIKIH */}
+                    <div className="card overflow-hidden border border-slate-200">
+                      <div className="bg-slate-900 text-white p-3.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Scale className="w-4 h-4 text-emerald-400" />
+                          <h4 className="font-extrabold text-xs uppercase tracking-wide">
+                            Tabel 1: Pembagian Saham & Kaidah Fikih
+                          </h4>
+                        </div>
+                        <span className="text-arabic text-xs text-emerald-300 font-bold">
+                          جدول السهام وقواعد الفقه
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="py-2.5 px-3">Ahli Waris (الوارث)</th>
+                              <th className="py-2.5 px-3 text-center">Jumlah (العدد)</th>
+                              <th className="py-2.5 px-3 text-center">Porsi Syar'i (الفرض)</th>
+                              <th className="py-2.5 px-3">Syarat & Kaidah Fikih (العلة والشروط)</th>
+                              <th className="py-2.5 px-3 text-center">Saham (السهام)</th>
+                              <th className="py-2.5 px-3 text-center">Persentase (%)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {berhakList.map((h, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50">
+                                <td className="py-2.5 px-3">
+                                  <div className="font-extrabold text-slate-900">{h.nama_id}</div>
+                                  <div className="text-arabic text-xs font-bold text-emerald-800">{h.nama_arab}</div>
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-700">
+                                  {h.jumlah_orang} org
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-xs">
+                                    {h.pecahan || 'Ashabah'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                                  {h.alasan_syarat || h.keterangan || '-'}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-extrabold text-slate-900 text-sm">
+                                  {h.saham_total_kelompok}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-600">
+                                  {testResult.total_harta_bersih > 0 && h.nominal_total_kelompok
+                                    ? `${((h.nominal_total_kelompok / testResult.total_harta_bersih) * 100).toFixed(2)}%`
+                                    : '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
 
-                    {/* Result Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left border border-slate-200 rounded-lg overflow-hidden">
-                        <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                          <tr>
-                            <th className="py-2 px-3">Ahli Waris</th>
-                            <th className="py-2 px-3 text-center">Status</th>
-                            <th className="py-2 px-3 text-center">Porsi</th>
-                            <th className="py-2 px-3 text-center">Saham Total</th>
-                            <th className="py-2 px-3 text-right">Nominal Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {testResult.hasil.map((h, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="py-2 px-3 font-extrabold text-slate-900">{h.nama_id} ({h.jumlah_orang} org)</td>
-                              <td className="py-2 px-3 text-center text-[10px] font-bold text-slate-600 uppercase">{h.status}</td>
-                              <td className="py-2 px-3 text-center font-bold text-emerald-700">{h.pecahan || '-'}</td>
-                              <td className="py-2 px-3 text-center font-extrabold">{h.saham_total_kelompok}</td>
-                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
-                                Rp {(h.nominal_total_kelompok || 0).toLocaleString('id-ID')}
+                    {/* 3. TABEL 2: PEMBAGIAN NOMINAL TIRKAH (RUPIAH) */}
+                    <div className="card overflow-hidden border border-slate-200">
+                      <div className="bg-emerald-800 text-white p-3.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Coins className="w-4 h-4 text-emerald-200" />
+                          <h4 className="font-extrabold text-xs uppercase tracking-wide">
+                            Tabel 2: Pembagian Nominal Harta / Tirkah
+                          </h4>
+                        </div>
+                        <span className="text-arabic text-xs text-emerald-200 font-bold">
+                          جدول توزيع التركة النقدية
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="py-2.5 px-3">Ahli Waris (الوارث)</th>
+                              <th className="py-2.5 px-3 text-center">Jumlah (العدد)</th>
+                              <th className="py-2.5 px-3">Rumus Nominal (طريقة الحساب)</th>
+                              <th className="py-2.5 px-3 text-right">Total Kelompok (مجموع النصيب)</th>
+                              <th className="py-2.5 px-3 text-right">Per Individu (نصيب الفرد)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {berhakList.map((h, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50">
+                                <td className="py-2.5 px-3 font-extrabold text-slate-900">
+                                  {h.nama_id}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-700">
+                                  {h.jumlah_orang} orang
+                                </td>
+                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">
+                                  ({h.saham_total_kelompok} ÷ {testResult.asal_masalah_tashih || testResult.asal_masalah_aul || testResult.asal_masalah_radd || testResult.asal_masalah_pokok}) × Tirkah
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900">
+                                  Rp {(h.nominal_total_kelompok || 0).toLocaleString('id-ID')}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">
+                                  Rp {(h.nominal_per_orang || 0).toLocaleString('id-ID')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-slate-50 font-extrabold border-t border-slate-200">
+                            <tr>
+                              <td colSpan={3} className="py-3 px-3 text-slate-800 uppercase">
+                                Total Tirkah Terdistribusi (إجمالي التركة الموزعة)
+                              </td>
+                              <td className="py-3 px-3 text-right font-mono text-emerald-800 text-sm">
+                                Rp {testResult.total_harta_bersih.toLocaleString('id-ID')}
+                              </td>
+                              <td className="py-3 px-3 text-right text-[10px] text-emerald-700 font-bold">
+                                100% Selesai
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </tfoot>
+                        </table>
+                      </div>
                     </div>
+
+                    {/* 4. TABEL AHLI WARIS TERHIJAB / GUGUR (JIKA ADA) */}
+                    {gugurList.length > 0 && (
+                      <div className="card overflow-hidden border border-rose-200">
+                        <div className="bg-rose-700 text-white p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="w-4 h-4 text-rose-200" />
+                            <h4 className="font-extrabold text-xs uppercase tracking-wide">
+                              Ahli Waris Terhijab / Gugur ({gugurList.length} Orang)
+                            </h4>
+                          </div>
+                          <span className="text-arabic text-xs text-rose-200 font-bold">
+                            المحجوبون والممنوعون من الإرث
+                          </span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-rose-50 text-rose-900 font-bold border-b border-rose-200">
+                              <tr>
+                                <th className="py-2 px-3">Ahli Waris Terhalang</th>
+                                <th className="py-2 px-3 text-center">Jumlah</th>
+                                <th className="py-2 px-3">Sebab Gugur / Hijab Hirman</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-rose-100">
+                              {gugurList.map((g, idx) => (
+                                <tr key={idx} className="hover:bg-rose-50/50">
+                                  <td className="py-2 px-3 font-bold text-slate-800 line-through decoration-rose-500">
+                                    {g.nama_id} ({g.nama_arab})
+                                  </td>
+                                  <td className="py-2 px-3 text-center text-slate-600">
+                                    {g.jumlah_orang} org
+                                  </td>
+                                  <td className="py-2 px-3 text-rose-700 font-semibold">
+                                    {g.alasan_gugur || g.keterangan || 'Terhalang oleh ahli waris yang lebih dekat'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
                   </div>
                 ) : (
-                  <div className="py-16 text-center text-slate-400">
-                    <Play className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs">Klik "Jalankan Kalkulasi Uji" untuk melihat output live</p>
+                  <div className="card p-12 text-center bg-white border border-slate-200 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
+                      <Scale className="w-6 h-6" />
+                    </div>
+                    <h4 className="font-extrabold text-sm text-slate-800">
+                      Mesin Faraidh Siap Dijalankan
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                      Pilih ahli waris di kolom kiri atau gunakan preset cepat di atas, lalu klik tombol <strong>"Jalankan Analisis Fikih"</strong> untuk memunculkan rincian tabel saham, asal masalah, 'aul, radd, dan tashih.
+                    </p>
                   </div>
                 )}
+
               </div>
 
             </div>
