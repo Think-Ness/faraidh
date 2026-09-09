@@ -9,21 +9,37 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://faraidh.vercel.app'),
   title: 'Kalkulator Faraidh — Ilmu Waris Islam (Kurikulum Gontor)',
   description:
-    'Mesin Edukasi Faraidh berbasis Kitab Ilmu Faraidh Kelas 3 KMI Gontor. Hitung pembagian waris Islam langkah demi langkah: Tirkah, Hijab, Furudh, Ashabah, Asal Masalah, \'Aul, Radd, dan Tashih.',
+    'Kalkulator & Mesin Edukasi Faraidh berbasis Kitab Ilmu Faraidh Kelas 3 KMI Gontor. Hitung pembagian waris Islam langkah demi langkah: Tirkah, Hijab, Furudh, Ashabah, Asal Masalah, \'Aul, Radd, dan Tashih.',
   keywords: [
     'faraidh', 'waris islam', 'kalkulator waris', 'ilmu faraidh', 'gontor',
     'furudh muqaddarah', 'ashabah', 'hijab hirman', 'tashih masail',
-    'pembagian harta waris', 'hukum waris islam',
+    'pembagian harta waris', 'hukum waris islam', 'kmi gontor'
   ],
   authors: [{ name: 'Sistem Faraidh Gontor' }],
   robots: 'index, follow',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+  },
   openGraph: {
-    title: 'Kalkulator Faraidh — Ilmu Waris Islam',
-    description: 'Hitung waris Islam dengan langkah-langkah syar\'i yang transparan dan edukatif.',
-    type: 'website',
+    title: 'Kalkulator Faraidh — Ilmu Waris Islam (Kurikulum Gontor)',
+    description: 'Hitung waris Islam langkah demi langkah secara transparan, akurat, dan sesuai kaidah syar\'i.',
+    url: 'https://faraidh.vercel.app',
+    siteName: 'Faraidh Web KMI Gontor',
     locale: 'id_ID',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Kalkulator Faraidh — Ilmu Waris Islam (Kurikulum Gontor)',
+    description: 'Hitung waris Islam langkah demi langkah secara transparan, akurat, dan sesuai kaidah syar\'i.',
   },
 }
 
