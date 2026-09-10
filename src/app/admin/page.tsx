@@ -1267,19 +1267,24 @@ export default function AdminPage() {
 
                           {/* Rows: Each Heir in Classical Format */}
                           <div className="divide-y-2 divide-emerald-900 text-center font-bold text-sm">
-                            {berhakList.map((h) => {
+                            {allListInResult.map((h) => {
+                              const isMahjub = ['gugur_halangan', 'gugur_hijab'].includes(h.status)
                               const arabName = formatTextbookArabicName(h.kode, h.jumlah_orang, h.nama_arab)
-                              const porsiArab = formatArabicFraction(h.pecahan)
+                              const porsiArab = isMahjub ? 'م (محجوب)' : formatArabicFraction(h.pecahan)
                               const mahfudzVal = mahfudzMap.get(h.kode)
-                              const sahamAsalRaw = h.saham_asal !== undefined ? h.saham_asal : (h.saham_total_kelompok || 0)
+                              const sahamAsalRaw = isMahjub ? 0 : (h.saham_asal !== undefined ? h.saham_asal : (h.saham_total_kelompok || 0))
                               const sahamAsalFormatted = formatCleanNumber(sahamAsalRaw, 2)
-                              const sahamTashihFormatted = formatCleanNumber(h.saham_total_kelompok || 0, 2)
-                              const sahamAsalDisplay = useArabicNumerals ? toArabicDigits(sahamAsalFormatted) : sahamAsalFormatted
-                              const sahamTashihDisplay = useArabicNumerals ? toArabicDigits(sahamTashihFormatted) : sahamTashihFormatted
-                              const mahfudzDisplay = mahfudzVal ? (useArabicNumerals ? toArabicDigits(mahfudzVal) : mahfudzVal) : '-'
+                              const sahamTashihFormatted = formatCleanNumber(isMahjub ? 0 : (h.saham_total_kelompok || 0), 2)
+                              const sahamAsalDisplay = isMahjub 
+                                ? '—' 
+                                : (useArabicNumerals ? toArabicDigits(sahamAsalFormatted) : sahamAsalFormatted)
+                              const sahamTashihDisplay = isMahjub 
+                                ? '—' 
+                                : (useArabicNumerals ? toArabicDigits(sahamTashihFormatted) : sahamTashihFormatted)
+                              const mahfudzDisplay = (!isMahjub && mahfudzVal) ? (useArabicNumerals ? toArabicDigits(mahfudzVal) : mahfudzVal) : '—'
 
                               return (
-                                <div key={h.kode} className="grid grid-cols-12 items-center hover:bg-slate-50">
+                                <div key={h.kode} className={`grid grid-cols-12 items-center transition-colors ${isMahjub ? 'bg-rose-50/50 text-slate-500' : 'hover:bg-slate-50 text-slate-900'}`}>
                                   
                                   {/* Optional Mahfudz Value */}
                                   {testResult.juz_sahm > 1 && testResult.mahfudzat_detail && testResult.mahfudzat_detail.length > 0 && (
@@ -1290,10 +1295,10 @@ export default function AdminPage() {
 
                                   {/* Right Column: Name + Porsi */}
                                   <div className={`${testResult.juz_sahm > 1 ? 'col-span-5' : 'col-span-6'} border-l-2 border-emerald-900 p-2 flex items-center justify-between px-3`}>
-                                    <span className="text-right text-slate-900 font-extrabold text-sm sm:text-base">
+                                    <span className={`text-right font-extrabold text-sm sm:text-base ${isMahjub ? 'line-through decoration-rose-400 text-slate-600' : 'text-slate-900'}`}>
                                       {arabName}
                                     </span>
-                                    <span className="text-emerald-800 font-mono text-xs sm:text-sm font-bold">
+                                    <span className={`font-mono text-xs sm:text-sm font-bold ${isMahjub ? 'text-rose-700 bg-rose-100/70 px-1.5 py-0.5 rounded text-[11px]' : 'text-emerald-800'}`}>
                                       {porsiArab}
                                     </span>
                                   </div>
@@ -1304,7 +1309,7 @@ export default function AdminPage() {
                                   </div>
 
                                   {/* Final Column: Saham Akhir / Tashih */}
-                                  <div className={`${testResult.juz_sahm > 1 ? 'col-span-3' : 'col-span-3'} p-2 font-mono text-emerald-900 font-extrabold text-sm sm:text-base bg-emerald-50/40`}>
+                                  <div className={`${testResult.juz_sahm > 1 ? 'col-span-3' : 'col-span-3'} p-2 font-mono text-emerald-900 font-extrabold text-sm sm:text-base ${isMahjub ? 'bg-rose-50/30 text-slate-400' : 'bg-emerald-50/40'}`}>
                                     {testResult.juz_sahm > 1 ? sahamTashihDisplay : sahamAsalDisplay}
                                   </div>
 
