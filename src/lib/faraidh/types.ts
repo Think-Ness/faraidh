@@ -195,3 +195,141 @@ export const formatRupiah = (angka: number): string => {
 export const formatAngka = (angka: number): string => {
   return new Intl.NumberFormat('id-ID').format(angka)
 }
+
+// ============================================================
+// LATIHAN SOAL — Types
+// ============================================================
+
+export type TipeSoal = 'pilihan_ganda' | 'esay' | 'isi_tabel'
+
+export interface OpsiJawaban {
+  label: string    // 'A', 'B', 'C', 'D'
+  teks: string
+  benar: boolean
+}
+
+export interface KonteksKasus {
+  ahli_waris: { kode: string; jumlah_orang: number }[]
+  harta: number
+  keterangan?: string
+}
+
+export interface KolomTabel {
+  header: string
+  kode_kolom: string
+  is_blank: boolean  // true = harus diisi santri
+  jawaban_benar?: string
+}
+
+export interface BarisIsiTabel {
+  nama_waris: string
+  nama_arab?: string
+  kolom: KolomTabel[]
+}
+
+export interface SyubbakBaris {
+  kode: string
+  nama_id: string
+  nama_arab: string
+  jumlah_orang: number
+  porsi_benar: string        // '1/2', '1/4', '1/8', '2/3', '1/3', '1/6', 'ع', dll
+  porsi_arab?: string
+  saham_benar: number
+  nominal_benar?: number
+  is_hijab?: boolean
+}
+
+export interface SyubbakKunci {
+  total_harta?: number
+  asal_masalah_pokok: number
+  asal_masalah_akhir?: number  // untuk aul, radd, atau tashih
+  status_penyelesaian: StatusPenyelesaian
+  simbol_status?: string       // 'ع' (Aul), 'رد' (Radd), 'ت' (Tashih)
+  baris: SyubbakBaris[]
+}
+
+export interface JawabanSyubbakSantri {
+  asal_masalah_pokok?: string
+  asal_masalah_akhir?: string
+  baris: {
+    kode: string
+    porsi: string
+    saham: string
+    nominal?: string
+  }[]
+}
+
+export interface DataIsiTabel {
+  judul_kolom?: string[]
+  baris?: BarisIsiTabel[]
+  syubbak?: SyubbakKunci
+}
+
+export interface SoalBatch {
+  id: string
+  judul: string
+  deskripsi?: string
+  kelas_target?: string
+  is_active: boolean
+  created_by?: string
+  created_at: string
+  jumlah_soal?: number
+  jumlah_peserta?: number
+  top_skor?: number
+}
+
+export interface SoalItem {
+  id: string
+  batch_id: string
+  urutan: number
+  tipe: TipeSoal
+  pertanyaan: string
+  pertanyaan_arab?: string
+  konteks_kasus?: KonteksKasus
+  opsi_jawaban?: OpsiJawaban[]
+  jawaban_benar?: string
+  data_isi_tabel?: DataIsiTabel
+  skor_maksimal: number
+  petunjuk?: string
+  created_at: string
+}
+
+export interface SesiLatihan {
+  id: string
+  batch_id: string
+  nama_santri: string
+  kelas: string
+  mulai_pada: string
+  selesai_pada?: string
+  durasi_detik?: number
+  is_selesai: boolean
+  skor_total: number
+  skor_persen?: number
+}
+
+export interface JawabanSesi {
+  id: number | string
+  sesi_id: string
+  soal_id: string
+  jawaban_santri?: string
+  is_benar?: boolean
+  skor_dapat: number
+  waktu_jawab: string
+}
+
+export interface ProfilSantri {
+  nama: string
+  angkatan: string  // '1', '1 Int', '2', '3', '3 Int', '4', '5', '6'
+  abjad: string     // 'A', 'B', 'C', dll (auto uppercase)
+}
+
+export function formatKelas(angkatan?: string, abjad?: string): string {
+  if (!angkatan && !abjad) return ''
+  if (!angkatan) return (abjad || '').toUpperCase()
+  if (!abjad) return angkatan
+  const cleanAbjad = abjad.trim().toUpperCase()
+  if (angkatan.toLowerCase().includes('int')) {
+    return `${angkatan} ${cleanAbjad}`
+  }
+  return `${angkatan}-${cleanAbjad}`
+}

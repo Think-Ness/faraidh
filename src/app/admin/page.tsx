@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import {
   LayoutDashboard,
@@ -29,6 +29,7 @@ import {
   ExternalLink,
   Lock,
   Eye,
+  EyeOff,
   Settings2,
   Check,
   Copy,
@@ -46,8 +47,31 @@ import {
   Calendar,
   CheckCheck,
   FileCheck,
+  Trophy,
+  Bot,
+  ListOrdered,
+  PlusCircle,
+  ToggleLeft,
+  ToggleRight,
+  Save,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Star,
+  FileQuestion,
+  ClipboardList,
 } from 'lucide-react'
 import { getAdminData, testAdminCalculation } from './actions'
+import {
+  getAllBatches,
+  getBatchSoalItems,
+  createBatch,
+  updateBatch,
+  deleteBatch,
+  createSoal,
+  updateSoal,
+  deleteSoal,
+} from '../actions-latihan'
 import type {
   AhliWaris,
   FurudhRule,
@@ -57,7 +81,18 @@ import type {
   KasusKhusus,
   InputKasus,
   HasilKalkulasi,
+  SoalBatch,
+  SoalItem,
+  TipeSoal,
+  OpsiJawaban,
+  SyubbakKunci,
 } from '@/lib/faraidh/types'
+import { FaraidhEngine } from '@/lib/faraidh/engine'
+import { SEED_RULES } from '@/data/seed-rules'
+import { JadwalSyubbakSoal } from '@/components/latihan/JadwalSyubbakSoal'
+
+const ADMIN_PIN = '1234' // Bisa diganti sesuai env
+const LS_PIN_KEY = 'faraidh_admin_unlocked'
 
 type AdminTab =
   | 'overview'
@@ -69,6 +104,8 @@ type AdminTab =
   | 'bank_soal'
   | 'audit_trail'
   | 'test_engine'
+  | 'batch_soal'
+  | 'ai_generator'
 
 // ─── Format Number with Max 2 Decimal Places ───────────────────────────
 function formatCleanNumber(num: number | string, maxDecimals: number = 2): string {
@@ -231,6 +268,110 @@ const CONCISE_NAMES: Record<string, string> = {
   mutiqah: 'Pembebas Budak (Pr)',
 }
 
+// ─── 25 Heirs Full Info (ID, ARAB, CONCISE) ─────────────────────────────
+const HEIR_INFO: Record<string, { id: string; arab: string; concise: string }> = {
+  suami: { id: 'Suami', arab: 'الزوج', concise: 'Suami' },
+  istri: { id: 'Istri', arab: 'الزوجة', concise: 'Istri' },
+  anak_lk: { id: 'Anak Laki-laki', arab: 'الابن', concise: 'Anak Lk' },
+  anak_pr: { id: 'Anak Perempuan', arab: 'البنت', concise: 'Anak Pr' },
+  cucu_lk: { id: 'Cucu Laki-laki (dari anak laki)', arab: 'ابن الابن', concise: 'Cucu Lk' },
+  cucu_pr: { id: 'Cucu Perempuan (dari anak laki)', arab: 'بنت الابن', concise: 'Cucu Pr' },
+  ayah: { id: 'Ayah', arab: 'الأب', concise: 'Ayah' },
+  ibu: { id: 'Ibu', arab: 'الأم', concise: 'Ibu' },
+  kakek: { id: 'Kakek (Jalur Ayah)', arab: 'الجد', concise: 'Kakek' },
+  nenek_ibu: { id: 'Nenek (Jalur Ibu)', arab: 'أم الأم', concise: 'Nenek Ibu' },
+  nenek_ayah: { id: 'Nenek (Jalur Ayah)', arab: 'أم الأب', concise: 'Nenek Ayah' },
+  saudara_lk_kandung: { id: 'Saudara Sekandung', arab: 'الأخ الشقيق', concise: 'Sdr Kandung' },
+  saudari_kandung: { id: 'Saudari Sekandung', arab: 'الأخت الشقيقة', concise: 'Sdri Kandung' },
+  saudara_lk_seayah: { id: 'Saudara Seayah', arab: 'الأخ لأب', concise: 'Sdr Seayah' },
+  saudari_seayah: { id: 'Saudari Seayah', arab: 'الأخت لأب', concise: 'Sdri Seayah' },
+  saudara_lk_seibu: { id: 'Saudara Seibu', arab: 'الأخ لأم', concise: 'Sdr Seibu' },
+  saudari_seibu: { id: 'Saudari Seibu', arab: 'الأخت لأم', concise: 'Sdri Seibu' },
+  keponakan_lk_kandung: { id: 'Keponakan Kandung', arab: 'ابن الأخ الشقيق', concise: 'Keponakan Kandung' },
+  keponakan_lk_seayah: { id: 'Keponakan Seayah', arab: 'ابن الأخ لأب', concise: 'Keponakan Seayah' },
+  paman_kandung: { id: 'Paman Kandung', arab: 'العم الشقيق', concise: 'Paman Kandung' },
+  paman_seayah: { id: 'Paman Seayah', arab: 'العم لأب', concise: 'Paman Seayah' },
+  sepupu_lk_paman_kandung: { id: 'Sepupu Kandung', arab: 'ابن العم الشقيق', concise: 'Sepupu Kandung' },
+  sepupu_lk_paman_seayah: { id: 'Sepupu Seayah', arab: 'ابن العم لأب', concise: 'Sepupu Seayah' },
+  mutiq: { id: 'Pembebas Budak (Lk)', arab: 'المعتق', concise: 'Mu\'tiq' },
+  mutiqah: { id: 'Pembebas Budak (Pr)', arab: 'المعتقة', concise: 'Mu\'tiqah' },
+}
+
+const generateRedaksiSoal = (
+  warisList: { kode: string; count: number }[],
+  tirkahHarta: number,
+  lang: 'id' | 'ar' | 'en'
+) => {
+  if (warisList.length === 0) return { pertanyaan: '', petunjuk: '' }
+
+  if (lang === 'ar') {
+    const listArab = warisList.map(w => {
+      const info = HEIR_INFO[w.kode] || { id: w.kode, arab: w.kode, concise: w.kode }
+      if (w.count === 1) return info.arab
+      if (w.count === 2) {
+        if (w.kode === 'anak_pr') return 'بنتان'
+        if (w.kode === 'anak_lk') return 'ابنان'
+        if (w.kode === 'saudari_kandung') return 'أختان شقيقتان'
+        if (w.kode === 'istri') return 'زوجتان'
+        return `${info.arab} (٢)`
+      }
+      return `${w.count} ${info.arab}`
+    }).join('، ')
+
+    const hartaText = tirkahHarta > 0
+      ? ` وَالتَّرِكَةُ الصَّافِيَةُ تَبْلُغُ ${tirkahHarta.toLocaleString('ar-SA')} رُوبِيَة.`
+      : ''
+
+    return {
+      pertanyaan: `تُوُفِّيَ شَخْصٌ وَتَرَكَ مِنَ الْوَرَثَةِ: ${listArab}.${hartaText} اسْتَخْرِجْ فُرُوضَهُمْ وَأَصْلَ الْمَسْأَلَةِ وَسِهَامَ كُلِّ وَارِثٍ ${tirkahHarta > 0 ? 'وَحِصَّتَهُ مِنَ التَّرِكَةِ ' : ''}فِي جَدْوَلِ الشُّبَّاكِ!`,
+      petunjuk: 'حَدِّدْ فُرُوضَ الْوَرَثَةِ، ثُمَّ اسْتَخْرِجْ أَصْلَ الْمَسْأَلَةِ، وَاحْسِبْ سِهَامَ كُلِّ وَارِثٍ.',
+    }
+  }
+
+  if (lang === 'en') {
+    const enNames: Record<string, string> = {
+      suami: 'Husband', istri: 'Wife', anak_lk: 'Son', anak_pr: 'Daughter',
+      cucu_lk: "Son's Son", cucu_pr: "Son's Daughter", ayah: 'Father', ibu: 'Mother',
+      kakek: 'Paternal Grandfather', nenek_ibu: 'Maternal Grandmother', nenek_ayah: 'Paternal Grandmother',
+      saudara_lk_kandung: 'Full Brother', saudari_kandung: 'Full Sister',
+      saudara_lk_seayah: 'Consanguine Brother', saudari_seayah: 'Consanguine Sister',
+      saudara_lk_seibu: 'Uterine Brother', saudari_seibu: 'Uterine Sister',
+      keponakan_lk_kandung: "Full Brother's Son", keponakan_lk_seayah: "Consanguine Brother's Son",
+      paman_kandung: 'Full Paternal Uncle', paman_seayah: 'Consanguine Paternal Uncle',
+      sepupu_lk_paman_kandung: "Full Uncle's Son", sepupu_lk_paman_seayah: "Consanguine Uncle's Son",
+      mutiq: 'Emancipator (M)', mutiqah: 'Emancipator (F)',
+    }
+    const listEn = warisList.map(w => {
+      const en = enNames[w.kode] || w.kode
+      return w.count > 1 ? `${w.count} ${en}s` : `1 ${en}`
+    }).join(', ')
+
+    const hartaText = tirkahHarta > 0
+      ? ` Total net estate (Tirkah) is IDR ${tirkahHarta.toLocaleString('id-ID')}.`
+      : ''
+
+    return {
+      pertanyaan: `A person passed away leaving the following surviving heirs: ${listEn}.${hartaText} Determine their Quranic shares (Furudh), base number (Asl al-Mas'alah), and allocated shares ${tirkahHarta > 0 ? 'and monetary portions ' : ''}in the Jadwal Syubbak table!`,
+      petunjuk: 'Determine the Quranic portions, find the base number, and calculate the shares for each heir.',
+    }
+  }
+
+  // Default: Bahasa Indonesia
+  const listId = warisList.map(w => {
+    const info = HEIR_INFO[w.kode] || { id: w.kode, arab: w.kode, concise: w.kode }
+    return w.count > 1 ? `${w.count} ${info.id}` : info.id
+  }).join(', ')
+
+  const hartaText = tirkahHarta > 0
+    ? ` Harta peninggalan (tirkah bersih) sebesar Rp ${tirkahHarta.toLocaleString('id-ID')}.`
+    : ''
+
+  return {
+    pertanyaan: `Seseorang meninggal dunia dan meninggalkan ahli waris: ${listId}.${hartaText} Tentukan porsi syar'i (furudh), asal masalah, dan saham ${tirkahHarta > 0 ? 'serta pembagian nominal harta ' : ''}masing-masing dalam Jadwal Syubbak!`,
+    petunjuk: 'Tentukan porsi furudh masing-masing, tentukan asal masalah pokok (dan \'Aul/Tashih jika ada), lalu hitung saham tiap ahli waris.',
+  }
+}
+
 // ─── Preset Sandbox Scenarios ──────────────────────────────────────────
 const ADMIN_SANDBOX_PRESETS = [
   {
@@ -337,6 +478,129 @@ const ADMIN_SANDBOX_PRESETS = [
 ]
 
 export default function AdminPage() {
+  // ─── PIN Lock State ────────────────────────────────────────────────────
+  const [pinUnlocked, setPinUnlocked] = useState(false)
+  const [pinInput, setPinInput] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [showPin, setShowPin] = useState(false)
+
+  useEffect(() => {
+    const unlocked = sessionStorage.getItem(LS_PIN_KEY)
+    if (unlocked === 'true') setPinUnlocked(true)
+  }, [])
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (pinInput === ADMIN_PIN) {
+      setPinUnlocked(true)
+      sessionStorage.setItem(LS_PIN_KEY, 'true')
+    } else {
+      setPinError('PIN salah. Coba lagi.')
+      setPinInput('')
+    }
+  }
+
+  // ─── Batch Soal State ──────────────────────────────────────────────────
+  const [batches, setBatches] = useState<SoalBatch[]>([])
+  const [batchesLoading, setBatchesLoading] = useState(false)
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [batchSoalList, setBatchSoalList] = useState<SoalItem[]>([])
+  const [showBatchForm, setShowBatchForm] = useState(false)
+  const [editingBatch, setEditingBatch] = useState<SoalBatch | null>(null)
+  const [batchForm, setBatchForm] = useState({ judul: '', deskripsi: '', kelas_target: '', is_active: true })
+  const [showSoalForm, setShowSoalForm] = useState(false)
+  const [editingSoalId, setEditingSoalId] = useState<string | null>(null)
+  const [soalFormTipe, setSoalFormTipe] = useState<TipeSoal>('pilihan_ganda')
+  const [soalForm, setSoalForm] = useState({
+    pertanyaan: '',
+    pertanyaan_arab: '',
+    jawaban_benar: '',
+    skor_maksimal: 10,
+    petunjuk: '',
+  })
+  const [opsiList, setOpsiList] = useState<OpsiJawaban[]>([
+    { label: 'A', teks: '', benar: false },
+    { label: 'B', teks: '', benar: false },
+    { label: 'C', teks: '', benar: false },
+    { label: 'D', teks: '', benar: false },
+  ])
+  const [savingSoal, setSavingSoal] = useState(false)
+  const [soalSelectedWaris, setSoalSelectedWaris] = useState<{ kode: string; count: number }[]>([])
+  const [soalTirkahHarta, setSoalTirkahHarta] = useState<number>(0)
+  const [soalRedaksiLang, setSoalRedaksiLang] = useState<'id' | 'ar' | 'en'>('id')
+  const [soalClusterTab, setSoalClusterTab] = useState<string>('pasangan')
+
+  const getSyubbakFromSelectedWaris = (
+    warisList: { kode: string; count: number }[],
+    tirkahHarta: number = 0
+  ): SyubbakKunci | null => {
+    if (warisList.length === 0) return null
+    try {
+      const engine = new FaraidhEngine(SEED_RULES)
+      const res = engine.hitung({
+        nama_pewaris: 'Soal Ujian',
+        harta_kotor: tirkahHarta > 0 ? tirkahHarta : 120000000,
+        biaya_tajhiz: 0,
+        hutang_terikat: 0,
+        hutang_biasa: 0,
+        wasiat: 0,
+        ahli_waris_list: warisList.map(w => ({
+          kode: w.kode,
+          jumlah_orang: w.count,
+          halangan: 'tidak_ada',
+        })),
+      })
+
+      return {
+        total_harta: tirkahHarta > 0 ? tirkahHarta : undefined,
+        asal_masalah_pokok: res.asal_masalah_pokok,
+        asal_masalah_akhir: res.asal_masalah_tashih !== res.asal_masalah_pokok ? res.asal_masalah_tashih : res.asal_masalah_aul,
+        status_penyelesaian: res.status_penyelesaian,
+        simbol_status: res.status_penyelesaian === 'aul' ? 'ع' : res.status_penyelesaian === 'radd' ? 'رد' : undefined,
+        baris: res.hasil.map(h => {
+          const isHijab = h.status === 'gugur_hijab' || h.status === 'gugur_halangan'
+          return {
+            kode: h.kode,
+            nama_id: h.nama_id,
+            nama_arab: h.nama_arab,
+            jumlah_orang: h.jumlah_orang,
+            porsi_benar: isHijab ? 'mahjub' : (h.pecahan || 'ع'),
+            porsi_arab: isHijab ? 'م' : (h.pecahan_arab || 'ع'),
+            saham_benar: isHijab ? 0 : (h.saham_tashih ?? h.saham_asal ?? 0),
+            nominal_benar: (tirkahHarta > 0 && !isHijab) ? (h.nominal_total_kelompok ?? 0) : undefined,
+            is_hijab: isHijab,
+          }
+        }),
+      }
+    } catch {
+      return null
+    }
+  }
+
+  // ─── AI Generator State ────────────────────────────────────────────────
+  const [aiTopik, setAiTopik] = useState('furudh')
+  const [aiTipe, setAiTipe] = useState<TipeSoal>('pilihan_ganda')
+  const [aiKesulitan, setAiKesulitan] = useState('sedang')
+  const [aiJumlah, setAiJumlah] = useState(3)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiResult, setAiResult] = useState<SoalItem[]>([])
+  const [aiError, setAiError] = useState('')
+  const [aiTargetBatch, setAiTargetBatch] = useState<string>('')
+  const [aiSaving, setAiSaving] = useState(false)
+  const [aiSavedCount, setAiSavedCount] = useState(0)
+
+  const loadBatches = useCallback(async () => {
+    setBatchesLoading(true)
+    const data = await getAllBatches()
+    setBatches(data)
+    setBatchesLoading(false)
+  }, [])
+
+  const loadBatchSoal = useCallback(async (batchId: string) => {
+    const soal = await getBatchSoalItems(batchId)
+    setBatchSoalList(soal)
+  }, [])
+
   const [activeTab, setActiveTab] = useState<AdminTab>('overview')
   const [loading, setLoading] = useState(true)
   const [adminData, setAdminData] = useState<any>(null)
@@ -344,6 +608,7 @@ export default function AdminPage() {
   const [genderFilter, setGenderFilter] = useState<'ALL' | 'L' | 'P'>('ALL')
   const [furudhFilter, setFurudhFilter] = useState<string>('ALL')
   const [selectedPenghalang, setSelectedPenghalang] = useState<string>('ALL')
+  const [hijabGenderGroup, setHijabGenderGroup] = useState<'ALL' | 'WANITA' | 'PRIA'>('ALL')
   const [copiedText, setCopiedText] = useState<string | null>(null)
 
   // ─── Sandbox State (DEFAULT KOSONG) ───────────────────────────────────
@@ -372,6 +637,12 @@ export default function AdminPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'batch_soal' || activeTab === 'ai_generator') {
+      loadBatches()
+    }
+  }, [activeTab, loadBatches])
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -494,17 +765,43 @@ export default function AdminPage() {
     return matchesPorsi && matchesSearch
   })
 
-  const filteredHijabHirman = (adminData?.hijabHirmanRules || []).filter((h: HijabHirmanRule) => {
-    const penghalang = ahliWarisMap.get(h.penghalang_id)
-    const terhalang = ahliWarisMap.get(h.terhalang_id)
-    const matchesPenghalang =
-      selectedPenghalang === 'ALL' || penghalang?.kode === selectedPenghalang
-    const matchesSearch =
-      !searchQuery ||
-      (penghalang?.nama_id.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (terhalang?.nama_id.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-    return matchesPenghalang && matchesSearch
-  })
+  const filteredHijabHirman = useMemo(() => {
+    return (adminData?.hijabHirmanRules || []).filter((h: HijabHirmanRule) => {
+      const penghalang = ahliWarisMap.get(h.penghalang_id)
+      const terhalang = ahliWarisMap.get(h.terhalang_id)
+      const matchesGender =
+        hijabGenderGroup === 'ALL' ||
+        (hijabGenderGroup === 'WANITA' && penghalang?.jenis_kelamin === 'P') ||
+        (hijabGenderGroup === 'PRIA' && penghalang?.jenis_kelamin === 'L')
+      const matchesPenghalang =
+        selectedPenghalang === 'ALL' || penghalang?.kode === selectedPenghalang
+      const matchesSearch =
+        !searchQuery ||
+        (penghalang?.nama_id.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (terhalang?.nama_id.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      return matchesGender && matchesPenghalang && matchesSearch
+    })
+  }, [adminData?.hijabHirmanRules, ahliWarisMap, hijabGenderGroup, selectedPenghalang, searchQuery])
+
+  // Grouped Hijab Hirman by Gender and Person (Penghalang)
+  const groupedHijabHirman = useMemo(() => {
+    const mapWanita = new Map<number, { penghalang: AhliWaris; rules: HijabHirmanRule[] }>()
+    const mapPria = new Map<number, { penghalang: AhliWaris; rules: HijabHirmanRule[] }>()
+
+    filteredHijabHirman.forEach((h: HijabHirmanRule) => {
+      const p = ahliWarisMap.get(h.penghalang_id)
+      if (!p) return
+      const targetMap = p.jenis_kelamin === 'P' ? mapWanita : mapPria
+      const existing = targetMap.get(p.id) || { penghalang: p, rules: [] }
+      existing.rules.push(h)
+      targetMap.set(p.id, existing)
+    })
+
+    return {
+      wanita: Array.from(mapWanita.values()),
+      pria: Array.from(mapPria.values()),
+    }
+  }, [filteredHijabHirman, ahliWarisMap])
 
   // Group result items for Sandbox Output
   const berhakList = testResult?.hasil.filter(h => !['gugur_halangan', 'gugur_hijab'].includes(h.status)) || []
@@ -520,6 +817,223 @@ export default function AdminPage() {
     }
     return map
   }, [testResult])
+
+  // ─── PIN Lock Screen ───────────────────────────────────────────────────
+  if (!pinUnlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-5">
+            <Lock className="w-8 h-8 text-emerald-400" />
+          </div>
+          <h1 className="text-xl font-extrabold text-slate-900 mb-1">Panel Asatidz</h1>
+          <p className="text-sm text-slate-500 mb-6">Masukkan PIN untuk mengakses panel admin</p>
+          <form onSubmit={handlePinSubmit} className="space-y-4">
+            <div className="relative">
+              <input
+                type={showPin ? 'text' : 'password'}
+                value={pinInput}
+                onChange={e => { setPinInput(e.target.value); setPinError('') }}
+                placeholder="PIN Admin"
+                maxLength={8}
+                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 text-center text-2xl font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            {pinError && <p className="text-xs text-red-600 font-medium">{pinError}</p>}
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition"
+            >
+              Masuk
+            </button>
+          </form>
+          <Link href="/" className="text-xs text-slate-400 hover:text-slate-600 mt-4 inline-block transition">
+            ← Kembali ke Halaman Utama
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Batch Soal Handlers ───────────────────────────────────────────────
+  const handleSaveBatch = async () => {
+    if (!batchForm.judul.trim()) return
+    if (editingBatch) {
+      await updateBatch(editingBatch.id, batchForm)
+    } else {
+      await createBatch(batchForm)
+    }
+    await loadBatches()
+    setShowBatchForm(false)
+    setEditingBatch(null)
+    setBatchForm({ judul: '', deskripsi: '', kelas_target: '', is_active: true })
+  }
+
+  const handleDeleteBatch = async (id: string) => {
+    if (!window.confirm('Hapus batch soal ini? Semua soal di dalamnya juga akan terhapus.')) return
+    await deleteBatch(id)
+    await loadBatches()
+    if (selectedBatchId === id) setSelectedBatchId(null)
+  }
+
+  const handleToggleBatchActive = async (batch: SoalBatch) => {
+    await updateBatch(batch.id, { is_active: !batch.is_active })
+    await loadBatches()
+  }
+
+  const handleSelectBatch = async (batchId: string) => {
+    setSelectedBatchId(batchId)
+    await loadBatchSoal(batchId)
+    setShowSoalForm(false)
+  }
+
+  const handleEditSoalClick = (soal: SoalItem) => {
+    setEditingSoalId(soal.id)
+    setSoalFormTipe(soal.tipe)
+    setSoalForm({
+      pertanyaan: soal.pertanyaan,
+      pertanyaan_arab: soal.pertanyaan_arab || '',
+      jawaban_benar: soal.jawaban_benar || '',
+      skor_maksimal: soal.skor_maksimal,
+      petunjuk: soal.petunjuk || '',
+    })
+
+    if (soal.tipe === 'pilihan_ganda') {
+      if (soal.opsi_jawaban && soal.opsi_jawaban.length > 0) {
+        setOpsiList(soal.opsi_jawaban)
+      } else {
+        setOpsiList([
+          { label: 'A', teks: '', benar: false },
+          { label: 'B', teks: '', benar: false },
+          { label: 'C', teks: '', benar: false },
+          { label: 'D', teks: '', benar: false },
+        ])
+      }
+    } else if (soal.tipe === 'isi_tabel') {
+      if (soal.data_isi_tabel?.syubbak?.baris) {
+        const waris = soal.data_isi_tabel.syubbak.baris.map(b => ({
+          kode: b.kode,
+          count: b.jumlah_orang || 1,
+        }))
+        setSoalSelectedWaris(waris)
+        setSoalTirkahHarta(soal.data_isi_tabel.syubbak.total_harta || 0)
+      } else {
+        setSoalSelectedWaris([])
+        setSoalTirkahHarta(0)
+      }
+    }
+
+    setShowSoalForm(true)
+  }
+
+  const handleSaveSoal = async () => {
+    if (!selectedBatchId || !soalForm.pertanyaan.trim()) return
+    setSavingSoal(true)
+    const urutan = editingSoalId
+      ? (batchSoalList.find(s => s.id === editingSoalId)?.urutan || 1)
+      : batchSoalList.length + 1
+
+    let data_isi_tabel = undefined
+    if (soalFormTipe === 'isi_tabel') {
+      const syubbak = getSyubbakFromSelectedWaris(soalSelectedWaris, soalTirkahHarta)
+      if (syubbak) {
+        data_isi_tabel = { syubbak }
+      }
+    }
+
+    const payload: Omit<SoalItem, 'id' | 'created_at'> = {
+      batch_id: selectedBatchId,
+      urutan,
+      tipe: soalFormTipe,
+      pertanyaan: soalForm.pertanyaan,
+      pertanyaan_arab: soalForm.pertanyaan_arab || undefined,
+      jawaban_benar: soalForm.jawaban_benar || undefined,
+      skor_maksimal: soalForm.skor_maksimal,
+      petunjuk: soalForm.petunjuk || undefined,
+      opsi_jawaban: soalFormTipe === 'pilihan_ganda' ? opsiList : undefined,
+      data_isi_tabel,
+    }
+
+    if (editingSoalId) {
+      await updateSoal(editingSoalId, payload)
+    } else {
+      await createSoal(payload)
+    }
+
+    await loadBatchSoal(selectedBatchId)
+    await loadBatches()
+    setShowSoalForm(false)
+    setEditingSoalId(null)
+    setSoalForm({ pertanyaan: '', pertanyaan_arab: '', jawaban_benar: '', skor_maksimal: 10, petunjuk: '' })
+    setSoalSelectedWaris([])
+    setSoalTirkahHarta(0)
+    setOpsiList([
+      { label: 'A', teks: '', benar: false },
+      { label: 'B', teks: '', benar: false },
+      { label: 'C', teks: '', benar: false },
+      { label: 'D', teks: '', benar: false },
+    ])
+    setSavingSoal(false)
+  }
+
+  const handleDeleteSoal = async (soalId: string) => {
+    if (!selectedBatchId) return
+    if (!window.confirm('Hapus soal ini?')) return
+    await deleteSoal(soalId)
+    await loadBatchSoal(selectedBatchId)
+    await loadBatches()
+  }
+
+  const handleGenerateAI = async () => {
+    setAiLoading(true)
+    setAiError('')
+    setAiResult([])
+    try {
+      const res = await fetch('/api/generate-soal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topik: aiTopik, tipe: aiTipe, kesulitan: aiKesulitan, jumlah: aiJumlah }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Generate gagal')
+      setAiResult(data.soalList || [])
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Terjadi kesalahan')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleSaveAiTooBatch = async () => {
+    if (!aiTargetBatch || aiResult.length === 0) return
+    setAiSaving(true)
+    const existing = await getBatchSoalItems(aiTargetBatch)
+    let urutan = existing.length + 1
+    let saved = 0
+    for (const soal of aiResult) {
+      await createSoal({
+        ...soal,
+        batch_id: aiTargetBatch,
+        urutan: urutan++,
+      })
+      saved++
+    }
+    await loadBatches()
+    if (selectedBatchId === aiTargetBatch) {
+      await loadBatchSoal(aiTargetBatch)
+    }
+    setAiSavedCount(saved)
+    setAiSaving(false)
+    setAiResult([])
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 pb-20 lg:pb-8">
@@ -693,8 +1207,35 @@ export default function AdminPage() {
             Log Simulasi
           </button>
 
+          <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
+
+          <button
+            onClick={() => setActiveTab('batch_soal')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeTab === 'batch_soal'
+                ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/30'
+                : 'text-amber-800 bg-amber-50 hover:bg-amber-100'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            Batch Soal
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ai_generator')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeTab === 'ai_generator'
+                ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-600/30'
+                : 'text-purple-800 bg-purple-50 hover:bg-purple-100'
+            }`}
+          >
+            <Bot className="w-3.5 h-3.5" />
+            AI Generator
+          </button>
+
         </div>
       </div>
+
 
       {/* ─── MAIN CONTENT ─────────────────────────────────────── */}
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex-1 w-full space-y-5">
@@ -1697,95 +2238,346 @@ export default function AdminPage() {
         {/* ═══════════════════════════════════════════════════════ */}
         {/* TAB 5: MATRIKS HIJAB (HIRMAN & NUQSHAN)                */}
         {/* ═══════════════════════════════════════════════════════ */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB 5: MATRIKS HIJAB (HIRMAN & NUQSHAN)                */}
+        {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === 'hijab' && (
           <div className="space-y-6 animate-fadeIn">
             
             {/* Header Hijab Hirman */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
-              <div>
-                <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-rose-700" />
-                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                    Kaidah Hijab Hirman ({adminData?.hijabHirmanRules?.length || 52} Relasi Gugur Total)
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-arabic text-xs font-bold text-rose-800">
-                    حجب الحرمان (إسقاط الوارث بالكلية من الميراث)
-                  </span>
-                  <span className="text-[11px] text-slate-400">•</span>
-                  <p className="text-xs text-slate-500">
-                    Filter pihak penghalang (الحاجب) untuk melihat pihak yang digugurkan (المحجوب)
-                  </p>
-                </div>
-              </div>
-
-              <select
-                value={selectedPenghalang}
-                onChange={(e) => setSelectedPenghalang(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white font-bold text-slate-700 focus:outline-none"
-              >
-                <option value="ALL">Semua Penghalang (كل الحواجب)</option>
-                <optgroup label="Penghalang Wanita (حواجب النساء)">
-                  <option value="ibu">Ibu (الأم — 2 Nenek terhalang)</option>
-                  <option value="anak_pr">Anak Perempuan (البنت — 3 terhalang)</option>
-                  <option value="saudari_kandung">Saudari Sekandung (الأخت الشقيقة — 4 terhalang)</option>
-                  <option value="cucu_pr">Cucu Perempuan (بنت الابن — 2 terhalang)</option>
-                </optgroup>
-                <optgroup label="Penghalang Laki-laki (حواجب الرجال)">
-                  <option value="anak_lk">Anak Laki-laki (الابن — 13 terhalang)</option>
-                  <option value="ayah">Ayah (الأب — 8 terhalang)</option>
-                  <option value="cucu_lk">Cucu Laki-laki (ابن الابن — 6 terhalang)</option>
-                  <option value="saudara_lk_kandung">Saudara Sekandung (الأخ الشقيق — 6 terhalang)</option>
-                  <option value="saudara_lk_seayah">Saudara Seayah (الأخ لأب — 4 terhalang)</option>
-                  <option value="kakek">Kakek (الجد — 2 terhalang)</option>
-                  <option value="keponakan_lk_kandung">Keponakan Kandung (ابن الأخ)</option>
-                  <option value="paman_kandung">Paman Kandung (العم الشقيق)</option>
-                  <option value="paman_seayah">Paman Seayah (العم لأب)</option>
-                </optgroup>
-              </select>
-            </div>
-
-            {/* Grid Hijab Hirman Cards with Arabic Names */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredHijabHirman.map((h: HijabHirmanRule) => {
-                const penghalang = ahliWarisMap.get(h.penghalang_id)
-                const terhalang = ahliWarisMap.get(h.terhalang_id)
-                return (
-                  <div key={h.id} className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-sm hover:border-rose-200 transition-colors">
-                    {/* Penghalang */}
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[9px] font-extrabold text-emerald-800 tracking-wider block uppercase">
-                        Penghalang (الحاجب)
-                      </span>
-                      <span className="font-extrabold text-xs text-slate-900 truncate block mt-0.5">
-                        {penghalang?.nama_id}
-                      </span>
-                      <span className="text-arabic text-[11px] font-bold text-emerald-800 truncate block">
-                        {penghalang?.nama_arab}
-                      </span>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-700">
+                      <ShieldAlert className="w-4 h-4" />
                     </div>
-
-                    <div className="flex flex-col items-center justify-center shrink-0 px-1">
-                      <ChevronRight className="w-4 h-4 text-rose-500" />
-                      <span className="text-[9px] font-bold text-rose-600">يحجب</span>
-                    </div>
-
-                    {/* Terhalang */}
-                    <div className="flex-1 text-right min-w-0">
-                      <span className="text-[9px] font-extrabold text-rose-700 tracking-wider block uppercase">
-                        Terhalang (المحجوب)
-                      </span>
-                      <span className="font-bold text-xs text-slate-700 line-through decoration-rose-500 truncate block mt-0.5">
-                        {terhalang?.nama_id}
-                      </span>
-                      <span className="text-arabic text-[11px] font-bold text-rose-700 line-through decoration-rose-500 truncate block">
-                        {terhalang?.nama_arab}
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900">
+                        Matriks & Kaidah Hijab Hirman
+                      </h3>
+                      <span className="text-arabic text-xs font-bold text-rose-800">
+                        حجب الحرمان (إسقاط الوارث بالكلية من الميراث)
                       </span>
                     </div>
                   </div>
-                )
-              })}
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                    Pengelompokan sistematis pihak penghalang (<strong>الحاجب</strong>) terhadap pihak yang gugur total (<strong>المحجوب</strong>) berdasarkan kurikulum fiqh Faraidh.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedPenghalang}
+                    onChange={(e) => setSelectedPenghalang(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 hover:bg-white font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                  >
+                    <option value="ALL">Semua Pihak Penghalang (كل الحواجب)</option>
+                    <optgroup label="Penghalang Wanita (حواجب النساء)">
+                      <option value="ibu">Ibu (الأم — 2 Nenek terhalang)</option>
+                      <option value="anak_pr">Anak Perempuan (البنت — 3 terhalang)</option>
+                      <option value="saudari_kandung">Saudari Sekandung (الأخت الشقيقة — 4 terhalang)</option>
+                      <option value="cucu_pr">Cucu Perempuan (بنت الابن — 2 terhalang)</option>
+                    </optgroup>
+                    <optgroup label="Penghalang Laki-laki (حواجب الرجال)">
+                      <option value="anak_lk">Anak Laki-laki (الابن — 13 terhalang)</option>
+                      <option value="ayah">Ayah (الأب — 8 terhalang)</option>
+                      <option value="cucu_lk">Cucu Laki-laki (ابن الابن — 6 terhalang)</option>
+                      <option value="saudara_lk_kandung">Saudara Sekandung (الأخ الشقيق — 6 terhalang)</option>
+                      <option value="saudara_lk_seayah">Saudara Seayah (الأخ لأب — 4 terhalang)</option>
+                      <option value="kakek">Kakek (الجد — 2 terhalang)</option>
+                      <option value="keponakan_lk_kandung">Keponakan Kandung (ابن الأخ)</option>
+                      <option value="paman_kandung">Paman Kandung (العم الشقيق)</option>
+                      <option value="paman_seayah">Paman Seayah (العم لأب)</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              {/* Group Category Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                  Kategori:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setHijabGenderGroup('ALL'); setSelectedPenghalang('ALL') }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    hijabGenderGroup === 'ALL'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Semua ({adminData?.hijabHirmanRules?.length || 52} Kaidah)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setHijabGenderGroup('WANITA'); setSelectedPenghalang('ALL') }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    hijabGenderGroup === 'WANITA'
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60'
+                  }`}
+                >
+                  <span>🌸 Penghalang Perempuan (حواجب النساء)</span>
+                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-extrabold ${hijabGenderGroup === 'WANITA' ? 'bg-rose-700 text-white' : 'bg-rose-200 text-rose-800'}`}>
+                    11 Kaidah
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setHijabGenderGroup('PRIA'); setSelectedPenghalang('ALL') }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    hijabGenderGroup === 'PRIA'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/60'
+                  }`}
+                >
+                  <span>🛡️ Penghalang Laki-laki (حواجب الرجال)</span>
+                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-extrabold ${hijabGenderGroup === 'PRIA' ? 'bg-indigo-700 text-white' : 'bg-indigo-200 text-indigo-800'}`}>
+                    41 Kaidah
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* GRUP 1: PENGHALANG PEREMPUAN (حواجب النساء)            */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            {(hijabGenderGroup === 'ALL' || hijabGenderGroup === 'WANITA') && groupedHijabHirman.wanita.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-gradient-to-r from-rose-50 via-pink-50 to-white p-3.5 rounded-xl border border-rose-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🌸</span>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-rose-950">
+                        Penghalang Perempuan (حواجب النساء)
+                      </h4>
+                      <p className="text-[11px] text-rose-700">
+                        Ahli waris wanita yang memiliki kekuatan menggugurkan ahli waris lain (Ibu, Anak Perempuan, Saudari Kandung, Cucu Perempuan)
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-arabic text-sm font-bold text-rose-800 hidden sm:inline">
+                    حواجب الإناث
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedHijabHirman.wanita.map(({ penghalang, rules }) => (
+                    <div key={penghalang.id} className="bg-white rounded-xl border border-rose-200/80 shadow-sm overflow-hidden flex flex-col">
+                      {/* Tokoh Header */}
+                      <div className="bg-rose-50/70 p-3 border-b border-rose-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold text-xs">
+                            ♀
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-xs text-rose-950">
+                              {penghalang.nama_id}
+                            </div>
+                            <div className="text-arabic text-[11px] font-bold text-rose-800">
+                              {penghalang.nama_arab}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold border border-rose-200">
+                          Menghalangi {rules.length} Ahli Waris
+                        </span>
+                      </div>
+
+                      {/* List Terhalang */}
+                      <div className="p-3 divide-y divide-rose-50 space-y-2.5 flex-1">
+                        {rules.map((r: HijabHirmanRule) => {
+                          const terhalang = ahliWarisMap.get(r.terhalang_id)
+                          return (
+                            <div key={r.id} className="pt-2 first:pt-0 flex flex-col gap-1">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <ChevronRight className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                  <span className="font-bold text-xs text-slate-800 line-through decoration-rose-500">
+                                    {terhalang?.nama_id}
+                                  </span>
+                                </div>
+                                <span className="text-arabic text-xs font-bold text-rose-700 line-through decoration-rose-500">
+                                  {terhalang?.nama_arab}
+                                </span>
+                              </div>
+                              {r.keterangan && (
+                                <p className="text-[11px] text-slate-500 pl-5 leading-tight">
+                                  {r.keterangan}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* GRUP 2: PENGHALANG LAKI-LAKI (حواجب الرجال)            */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            {(hijabGenderGroup === 'ALL' || hijabGenderGroup === 'PRIA') && groupedHijabHirman.pria.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-gradient-to-r from-indigo-50 via-slate-50 to-white p-3.5 rounded-xl border border-indigo-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🛡️</span>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-indigo-950">
+                        Penghalang Laki-laki (حواجب الرجال)
+                      </h4>
+                      <p className="text-[11px] text-indigo-700">
+                        Ahli waris laki-laki yang menggugurkan kerabat lain (Anak Laki-laki, Ayah, Cucu Laki-laki, Saudara Kandung, dll)
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-arabic text-sm font-bold text-indigo-800 hidden sm:inline">
+                    حواجب الذكور
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groupedHijabHirman.pria.map(({ penghalang, rules }) => (
+                    <div key={penghalang.id} className="bg-white rounded-xl border border-indigo-200/80 shadow-sm overflow-hidden flex flex-col">
+                      {/* Tokoh Header */}
+                      <div className="bg-indigo-50/70 p-3 border-b border-indigo-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
+                            ♂
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-xs text-indigo-950">
+                              {penghalang.nama_id}
+                            </div>
+                            <div className="text-arabic text-[11px] font-bold text-indigo-800">
+                              {penghalang.nama_arab}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-extrabold border border-indigo-200">
+                          {rules.length} Terhalang
+                        </span>
+                      </div>
+
+                      {/* List Terhalang */}
+                      <div className="p-3 divide-y divide-slate-100 space-y-2 flex-1">
+                        {rules.map((r: HijabHirmanRule) => {
+                          const terhalang = ahliWarisMap.get(r.terhalang_id)
+                          return (
+                            <div key={r.id} className="pt-2 first:pt-0 flex flex-col gap-0.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <ChevronRight className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                  <span className="font-bold text-xs text-slate-800 line-through decoration-rose-500">
+                                    {terhalang?.nama_id}
+                                  </span>
+                                </div>
+                                <span className="text-arabic text-xs font-bold text-rose-700 line-through decoration-rose-500">
+                                  {terhalang?.nama_arab}
+                                </span>
+                              </div>
+                              {r.keterangan && (
+                                <p className="text-[10.5px] text-slate-500 pl-5 leading-tight">
+                                  {r.keterangan}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State if filter yields nothing */}
+            {filteredHijabHirman.length === 0 && (
+              <div className="p-8 text-center bg-white rounded-xl border border-slate-200 space-y-2">
+                <ShieldCheck className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-600">Tidak ada kaidah hijab yang cocok dengan filter saat ini</p>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedPenghalang('ALL'); setHijabGenderGroup('ALL') }}
+                  className="px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg"
+                >
+                  Reset Filter
+                </button>
+              </div>
+            )}
+
+            {/* ═══ KOTAK RUJUKAN KITAB: 5 GOLONGAN WANITA TERKENA HIJAB HIRMAN (HLM 18) ═══ */}
+            <div className="card p-5 border-2 border-emerald-300 bg-emerald-50/40 space-y-3">
+              <div className="flex items-center justify-between border-b border-emerald-200 pb-2 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-emerald-800" />
+                  <h4 className="font-extrabold text-sm text-emerald-950">
+                    Kaidah Rujukan Kitab: 5 Golongan Wanita Terkena Hijab Hirman
+                  </h4>
+                </div>
+                <span className="text-arabic text-sm font-bold text-emerald-900">
+                  المحجوبات حجب حرمان (كتاب الفرائض ص ١٨)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">1. Nenek secara Mutlak (الجدّة مطلقا)</span>
+                    <span className="text-arabic font-bold text-emerald-800">أمّ الأم / أمّ الأب</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    <strong>تُحْجَبُ بالأمّ</strong>: Terhalang oleh Ibu kandung. Nenek dari jalur ayah (أم الأب) juga terhalang oleh Ayah.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">2. Cucu Perempuan (بنت ابن)</span>
+                    <span className="text-arabic font-bold text-emerald-800">بنت ابن</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    <strong>تُحْجَبُ بالابن وتُحْجَبُ ببنتين فأكثر إلاّ إذا كان هناك معصّب</strong>: Terhalang oleh Anak Laki-laki dan oleh 2+ Anak Perempuan kecuali ada Cucu Laki-laki yang meng-ashabahkan.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">3. Saudari Sekandung (الأخت الشقيقة)</span>
+                    <span className="text-arabic font-bold text-emerald-800">الأخت الشقيقة</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    <strong>تُحْجَبُ بالأب، وتُحْجَبُ بالفرع الوارث المذكّر</strong>: Terhalang oleh Ayah dan oleh Keturunan Laki-laki (Anak Lk / Cucu Lk).
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">4. Saudari Seayah (الأخت لأب)</span>
+                    <span className="text-arabic font-bold text-emerald-800">الأخت لأب</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    <strong>تُحْجَبُ بالشقيق، وبالشقيقة إذا صارت عصبة مع الغير، وبالأب وبالفرع الوارث المذكّر، وبالشقيقتين إلاّ إذا وجد معصّب</strong>: Terhalang oleh Saudara Kandung, oleh Saudari Kandung (Ashabah ma'al-Ghair), oleh Ayah, Far'u Mudzakkar, dan 2 Saudari Kandung.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-emerald-200 space-y-1 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">5. Saudari Seibu (الأخت لأمّ)</span>
+                    <span className="text-arabic font-bold text-emerald-800">الأخت لأمّ والأخ لأمّ</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    <strong>تُحْجَبُ بالأصل المذكّر والفرع الوارث المذكّر والمؤنّث</strong>: Terhalang oleh Asal Laki-laki (Ayah, Kakek) dan seluruh Keturunan (Anak Lk/Pr, Cucu Lk/Pr).
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Section Hijab Nuqshan */}
@@ -2093,7 +2885,779 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB: BATCH SOAL MANAJEMEN                               */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === 'batch_soal' && (
+          <div className="space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-600" />
+                  Manajemen Batch Soal
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Kelola paket soal latihan untuk santri</p>
+              </div>
+              <button
+                onClick={() => { setShowBatchForm(true); setEditingBatch(null); setBatchForm({ judul: '', deskripsi: '', kelas_target: '', is_active: true }) }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition shadow-sm"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Buat Batch Baru
+              </button>
+            </div>
+
+            {/* Form Batch */}
+            {showBatchForm && (
+              <div className="card p-5 border-amber-200 bg-amber-50/30">
+                <h3 className="font-bold text-slate-900 mb-4">{editingBatch ? 'Edit Batch' : 'Buat Batch Soal Baru'}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Judul Batch *</label>
+                    <input
+                      type="text"
+                      value={batchForm.judul}
+                      onChange={e => setBatchForm(f => ({ ...f, judul: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      placeholder="Contoh: UTS Faraidh Kelas 3 2026"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Target Kelas</label>
+                    <input
+                      type="text"
+                      value={batchForm.kelas_target}
+                      onChange={e => setBatchForm(f => ({ ...f, kelas_target: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      placeholder="Contoh: Kelas 3 KMI"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Deskripsi</label>
+                    <textarea
+                      value={batchForm.deskripsi}
+                      onChange={e => setBatchForm(f => ({ ...f, deskripsi: e.target.value }))}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      placeholder="Keterangan batch soal..."
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="batch-active"
+                      checked={batchForm.is_active}
+                      onChange={e => setBatchForm(f => ({ ...f, is_active: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <label htmlFor="batch-active" className="text-xs font-bold text-slate-600">Aktif (terlihat oleh santri)</label>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button onClick={handleSaveBatch} className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition">
+                    {editingBatch ? 'Simpan Perubahan' : 'Buat Batch'}
+                  </button>
+                  <button onClick={() => setShowBatchForm(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition">
+                    Batal
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Daftar Batch */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Sidebar: List Batch */}
+              <div className="space-y-3">
+                {batchesLoading ? (
+                  <div className="card p-6 text-center"><Loader2 className="w-6 h-6 text-amber-600 animate-spin mx-auto" /></div>
+                ) : batches.length === 0 ? (
+                  <div className="card p-6 text-center text-sm text-slate-400">
+                    <ClipboardList className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    Belum ada batch soal. Buat yang pertama!
+                  </div>
+                ) : (
+                  batches.map(batch => (
+                    <div
+                      key={batch.id}
+                      className={`card p-4 cursor-pointer transition-all ${selectedBatchId === batch.id ? 'border-amber-400 bg-amber-50/30' : 'hover:border-slate-300'}`}
+                      onClick={() => handleSelectBatch(batch.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-900 text-sm truncate">{batch.judul}</p>
+                          {batch.kelas_target && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">{batch.kelas_target}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={e => { e.stopPropagation(); handleToggleBatchActive(batch) }}
+                            className={`p-1 rounded ${batch.is_active ? 'text-emerald-600' : 'text-slate-300'} hover:bg-slate-100 transition`}
+                            title={batch.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                          >
+                            {batch.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingBatch(batch); setBatchForm({ judul: batch.judul, deskripsi: batch.deskripsi || '', kelas_target: batch.kelas_target || '', is_active: batch.is_active }); setShowBatchForm(true) }}
+                            className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                            title="Edit"
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDeleteBatch(batch.id) }}
+                            className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      {!batch.is_active && (
+                        <span className="text-[10px] text-slate-400 font-medium">(Tidak Aktif)</span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Main: Daftar Soal */}
+              <div className="lg:col-span-2 space-y-3">
+                {!selectedBatchId ? (
+                  <div className="card p-10 text-center text-slate-400">
+                    <ListOrdered className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+                    <p className="text-sm">Pilih batch soal di sebelah kiri untuk melihat dan mengelola soal-soalnya.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h3 className="font-bold text-slate-900">
+                        Soal dalam Batch ({batchSoalList.length})
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setEditingSoalId(null)
+                          setSoalFormTipe('pilihan_ganda')
+                          setSoalForm({ pertanyaan: '', pertanyaan_arab: '', jawaban_benar: '', skor_maksimal: 10, petunjuk: '' })
+                          setSoalSelectedWaris([])
+                          setOpsiList([
+                            { label: 'A', teks: '', benar: false },
+                            { label: 'B', teks: '', benar: false },
+                            { label: 'C', teks: '', benar: false },
+                            { label: 'D', teks: '', benar: false },
+                          ])
+                          setShowSoalForm(true)
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah Soal
+                      </button>
+                    </div>
+
+                    {/* Form Tambah / Edit Soal */}
+                    {showSoalForm && (
+                      <div className="card p-5 border-emerald-200 bg-emerald-50/20 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-slate-900 text-sm">
+                            {editingSoalId ? 'Edit Soal' : 'Tambah Soal Baru'}
+                          </h4>
+                          {editingSoalId && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                              Mode Edit
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Tipe Soal */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-2">Tipe Soal</label>
+                          <div className="flex gap-2 flex-wrap">
+                            {(['pilihan_ganda', 'esay', 'isi_tabel'] as TipeSoal[]).map(t => (
+                              <button
+                                key={t}
+                                onClick={() => setSoalFormTipe(t)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${soalFormTipe === t ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                              >
+                                {t === 'pilihan_ganda' ? 'Pilihan Ganda' : t === 'esay' ? 'Esay' : 'Jadwal Syubbak (Tabel)'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Pertanyaan / Redaksi Soal *</label>
+                          <textarea
+                            value={soalForm.pertanyaan}
+                            onChange={e => setSoalForm(f => ({ ...f, pertanyaan: e.target.value }))}
+                            rows={3}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            placeholder="Tulis pertanyaan atau redaksi kasus mayit..."
+                          />
+                        </div>
+
+                        {soalFormTipe === 'pilihan_ganda' && (
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-2">Opsi Jawaban (centang yang benar)</label>
+                            <div className="space-y-2">
+                              {opsiList.map((opsi, i) => (
+                                <div key={opsi.label} className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setOpsiList(list => list.map((o, j) => ({ ...o, benar: j === i })))}
+                                    className={`w-7 h-7 rounded-lg font-extrabold text-xs flex-shrink-0 transition ${opsi.benar ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                  >
+                                    {opsi.label}
+                                  </button>
+                                  <input
+                                    type="text"
+                                    value={opsi.teks}
+                                    onChange={e => setOpsiList(list => list.map((o, j) => j === i ? { ...o, teks: e.target.value } : o))}
+                                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                    placeholder={`Teks opsi ${opsi.label}...`}
+                                  />
+                                </div>
+                              ))}
+                              <p className="text-[11px] text-slate-400">Klik huruf untuk menandai jawaban benar.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Khusus Soal Isi Tabel / Jadwal Syubbak: Pemilih 25 Ahli Waris */}
+                        {soalFormTipe === 'isi_tabel' && (
+                          <div className="p-4 sm:p-5 rounded-2xl bg-white border-2 border-emerald-400 space-y-4 shadow-sm">
+                            
+                            {/* Header & Multi-Language Redaksi Generator */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
+                              <div>
+                                <h5 className="font-extrabold text-sm sm:text-base text-emerald-950 flex items-center gap-2">
+                                  <Scale className="w-4 h-4 text-emerald-700" />
+                                  Pilih Ahli Waris (Kunci Jadwal Syubbak)
+                                </h5>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  Pilih ahli waris per kelompok (الفرائض) dan tentukan nominal tirkah (jika ada).
+                                </p>
+                              </div>
+
+                              {soalSelectedWaris.length > 0 && (
+                                <div className="flex items-center gap-1.5 flex-wrap bg-emerald-50 p-1.5 rounded-xl border border-emerald-200">
+                                  <span className="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider px-1">
+                                    Redaksi:
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const redaksi = generateRedaksiSoal(soalSelectedWaris, soalTirkahHarta, 'id')
+                                      setSoalForm(f => ({ ...f, pertanyaan: redaksi.pertanyaan, petunjuk: redaksi.petunjuk }))
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition flex items-center gap-1"
+                                    title="Buat Redaksi Bahasa Indonesia"
+                                  >
+                                    <span>🇮🇩 ID</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const redaksi = generateRedaksiSoal(soalSelectedWaris, soalTirkahHarta, 'ar')
+                                      setSoalForm(f => ({ ...f, pertanyaan: redaksi.pertanyaan, petunjuk: redaksi.petunjuk }))
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition flex items-center gap-1"
+                                    title="Buat Redaksi Bahasa Arab"
+                                  >
+                                    <span>🇸🇦 AR</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const redaksi = generateRedaksiSoal(soalSelectedWaris, soalTirkahHarta, 'en')
+                                      setSoalForm(f => ({ ...f, pertanyaan: redaksi.pertanyaan, petunjuk: redaksi.petunjuk }))
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition flex items-center gap-1"
+                                    title="Buat Redaksi Bahasa Inggris"
+                                  >
+                                    <span>🇬🇧 EN</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Input Harta Tirkah (Opsional) */}
+                            <div className="p-3.5 rounded-xl bg-amber-50/50 border border-amber-200 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                                  <Coins className="w-4 h-4 text-amber-600" />
+                                  <span>Total Harta Tirkah Bersih / التركة (Opsional - Rp)</span>
+                                </label>
+                                {soalTirkahHarta > 0 && (
+                                  <span className="text-xs font-mono font-extrabold text-amber-900">
+                                    Rp {soalTirkahHarta.toLocaleString('id-ID')}
+                                  </span>
+                                )}
+                              </div>
+                              <input
+                                type="number"
+                                value={soalTirkahHarta || ''}
+                                onChange={e => setSoalTirkahHarta(Math.max(0, parseInt(e.target.value) || 0))}
+                                placeholder="Kosongkan jika soal hanya hisab porsi & saham..."
+                                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs sm:text-sm font-bold bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                              />
+                              <div className="flex items-center gap-1.5 overflow-x-auto text-[10px]">
+                                <button
+                                  type="button"
+                                  onClick={() => setSoalTirkahHarta(0)}
+                                  className={`px-2 py-0.5 rounded font-bold transition ${soalTirkahHarta === 0 ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'}`}
+                                >
+                                  Tanpa Nominal
+                                </button>
+                                {[120_000_000, 240_000_000, 360_000_000, 600_000_000].map(amt => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setSoalTirkahHarta(amt)}
+                                    className={`px-2 py-0.5 rounded font-bold transition ${soalTirkahHarta === amt ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'}`}
+                                  >
+                                    {(amt / 1_000_000)} Jt
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Clustered 25 Ahli Waris Selector with Arabic First */}
+                            <div className="space-y-3">
+                              {/* Cluster Tabs */}
+                              <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-slate-200 scrollbar-none">
+                                {CLUSTERS.map(cluster => {
+                                  const countInCluster = soalSelectedWaris.filter(w => cluster.codes.includes(w.kode)).reduce((sum, w) => sum + w.count, 0)
+                                  return (
+                                    <button
+                                      key={cluster.id}
+                                      type="button"
+                                      onClick={() => setSoalClusterTab(cluster.id)}
+                                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                                        soalClusterTab === cluster.id
+                                          ? 'bg-slate-900 text-white shadow-sm'
+                                          : 'text-slate-600 bg-slate-100 hover:bg-slate-200'
+                                      }`}
+                                    >
+                                      <span>{cluster.title}</span>
+                                      <span className="text-arabic text-[11px] opacity-80">({cluster.titleArab})</span>
+                                      {countInCluster > 0 && (
+                                        <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold">
+                                          {countInCluster}
+                                        </span>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+
+                              {/* Active Cluster Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                {CLUSTERS.find(c => c.id === soalClusterTab)?.codes.map(kode => {
+                                  const info = HEIR_INFO[kode] || { id: kode, arab: kode, concise: kode }
+                                  const selected = soalSelectedWaris.find(w => w.kode === kode)
+                                  const count = selected?.count || 0
+
+                                  return (
+                                    <div
+                                      key={kode}
+                                      className={`p-3 rounded-xl border-2 flex items-center justify-between gap-2 transition ${
+                                        count > 0
+                                          ? 'bg-emerald-50/90 border-emerald-500 shadow-sm'
+                                          : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
+                                      }`}
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-arabic text-sm sm:text-base font-extrabold text-emerald-950 truncate">
+                                          {info.arab}
+                                        </div>
+                                        <div className="text-xs text-slate-600 font-bold truncate">
+                                          {info.id}
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {count > 0 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSoalSelectedWaris(prev => {
+                                                const existing = prev.find(w => w.kode === kode)
+                                                if (!existing || existing.count <= 1) return prev.filter(w => w.kode !== kode)
+                                                return prev.map(w => w.kode === kode ? { ...w, count: w.count - 1 } : w)
+                                              })
+                                            }}
+                                            className="w-7 h-7 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 flex items-center justify-center font-bold text-sm transition"
+                                          >
+                                            -
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setSoalSelectedWaris(prev => {
+                                              let next = [...prev]
+                                              if (kode === 'suami') next = next.filter(w => w.kode !== 'istri')
+                                              if (kode === 'istri') next = next.filter(w => w.kode !== 'suami')
+                                              const existing = next.find(w => w.kode === kode)
+                                              if (!existing) next.push({ kode, count: 1 })
+                                              else next = next.map(w => w.kode === kode ? { ...w, count: w.count + 1 } : w)
+                                              return next
+                                            })
+                                          }}
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-xs transition ${
+                                            count > 0
+                                              ? 'bg-emerald-700 text-white'
+                                              : 'bg-slate-200 text-slate-700 hover:bg-emerald-600 hover:text-white'
+                                          }`}
+                                        >
+                                          {count > 0 ? count : '+'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+
+                              {/* Selected Heirs Summary Chips */}
+                              {soalSelectedWaris.length > 0 && (
+                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-700 mr-1">
+                                      Terpilih ({soalSelectedWaris.length} Golongan):
+                                    </span>
+                                    {soalSelectedWaris.map(sw => {
+                                      const info = HEIR_INFO[sw.kode] || { id: sw.kode, arab: sw.kode, concise: sw.kode }
+                                      return (
+                                        <span
+                                          key={sw.kode}
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-xs font-bold text-emerald-950"
+                                        >
+                                          <span className="text-arabic text-xs font-extrabold text-emerald-900">{info.arab}</span>
+                                          <span>{info.concise}</span>
+                                          <span className="w-4 h-4 rounded-full bg-emerald-700 text-white text-[10px] flex items-center justify-center font-bold">
+                                            {sw.count}
+                                          </span>
+                                        </span>
+                                      )
+                                    })}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSoalSelectedWaris([])}
+                                    className="text-[11px] text-rose-600 font-bold hover:underline"
+                                  >
+                                    Reset Pilihan
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Live Preview Kunci Jadwal Syubbak */}
+                            {soalSelectedWaris.length > 0 && (
+                              <div className="border-t border-emerald-200 pt-4">
+                                <p className="text-xs font-bold text-emerald-950 mb-2 flex items-center gap-1.5">
+                                  <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                                  <span>Live Preview Kunci Jadwal Syubbak yang Dihasilkan:</span>
+                                </p>
+                                {(() => {
+                                  const syubbak = getSyubbakFromSelectedWaris(soalSelectedWaris, soalTirkahHarta)
+                                  if (!syubbak) return <p className="text-xs text-slate-400">Pilih minimal 1 ahli waris.</p>
+                                  return (
+                                    <JadwalSyubbakSoal
+                                      kunci={syubbak}
+                                      readonly
+                                      showCorrection
+                                    />
+                                  )
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {soalFormTipe === 'esay' && (
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1">Kunci Jawaban (referensi guru)</label>
+                            <textarea
+                              value={soalForm.jawaban_benar}
+                              onChange={e => setSoalForm(f => ({ ...f, jawaban_benar: e.target.value }))}
+                              rows={3}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                              placeholder="Tulis kunci jawaban lengkap..."
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1">Skor Maksimal</label>
+                            <input
+                              type="number"
+                              value={soalForm.skor_maksimal}
+                              onChange={e => setSoalForm(f => ({ ...f, skor_maksimal: parseInt(e.target.value) || 10 }))}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1">Petunjuk (opsional)</label>
+                            <input
+                              type="text"
+                              value={soalForm.petunjuk}
+                              onChange={e => setSoalForm(f => ({ ...f, petunjuk: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                              placeholder="Petunjuk pengerjaan..."
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleSaveSoal}
+                            disabled={savingSoal}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition disabled:opacity-50"
+                          >
+                            {savingSoal ? 'Menyimpan...' : editingSoalId ? 'Simpan Perubahan' : 'Simpan Soal'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowSoalForm(false)
+                              setEditingSoalId(null)
+                            }}
+                            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Daftar Soal */}
+                    {batchSoalList.length === 0 ? (
+                      <div className="card p-8 text-center text-slate-400 text-sm">
+                        <FileQuestion className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+                        Belum ada soal. Tambahkan soal pertama atau gunakan AI Generator.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {batchSoalList.map((soal, idx) => (
+                          <div key={soal.id} className="card p-4 flex items-start gap-3">
+                            <span className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center font-extrabold text-slate-600 text-xs flex-shrink-0">{idx + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${soal.tipe === 'pilihan_ganda' ? 'bg-blue-100 text-blue-800 border-blue-200' : soal.tipe === 'esay' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                                  {soal.tipe === 'pilihan_ganda' ? 'PG' : soal.tipe === 'esay' ? 'Esay' : 'Tabel'}
+                                </span>
+                                <span className="text-[10px] text-slate-400">Skor: {soal.skor_maksimal}</span>
+                              </div>
+                              <p className="text-sm text-slate-800 line-clamp-2">{soal.pertanyaan}</p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => handleEditSoalClick(soal)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                                title="Edit Soal"
+                              >
+                                <Settings2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSoal(soal.id)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                title="Hapus Soal"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TAB: AI GENERATOR SOAL                                 */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === 'ai_generator' && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 border border-purple-200 flex items-center justify-center">
+                <Bot className="w-6 h-6 text-purple-700" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900">Generator Soal AI</h2>
+                <p className="text-xs text-slate-500">Powered by Gemini — Buat soal faraidh otomatis berdasarkan kaidah syar&apos;i</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Konfigurasi */}
+              <div className="card p-5 space-y-4">
+                <h3 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Konfigurasi Generate</h3>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-2">Topik Soal</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { val: 'furudh', label: 'Furudh Muqaddarah' },
+                      { val: 'hijab', label: 'Hijab Hirman/Nuqshan' },
+                      { val: 'ashabah', label: 'Ashabah (3 Jenis)' },
+                      { val: 'asal_masalah', label: "Asal Masalah/'Aul/Radd" },
+                      { val: 'kasus_khusus', label: 'Masalah Khusus (3)' },
+                      { val: 'umum', label: 'Umum (Campuran)' },
+                    ].map(t => (
+                      <button
+                        key={t.val}
+                        onClick={() => setAiTopik(t.val)}
+                        className={`px-3 py-2 rounded-xl border text-xs font-semibold text-left transition ${aiTopik === t.val ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-2">Tipe Soal</label>
+                  <div className="flex gap-2">
+                    {(['pilihan_ganda', 'esay', 'isi_tabel'] as TipeSoal[]).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setAiTipe(t)}
+                        className={`flex-1 py-2 rounded-xl border text-xs font-bold transition ${aiTipe === t ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        {t === 'pilihan_ganda' ? 'PG' : t === 'esay' ? 'Esay' : 'Isi Tabel'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-2">Tingkat Kesulitan</label>
+                  <div className="flex gap-2">
+                    {['mudah', 'sedang', 'sulit'].map(k => (
+                      <button
+                        key={k}
+                        onClick={() => setAiKesulitan(k)}
+                        className={`flex-1 py-2 rounded-xl border text-xs font-bold capitalize transition ${aiKesulitan === k ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-2">Jumlah Soal (maks 10)</label>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setAiJumlah(j => Math.max(1, j - 1))} className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition">
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-extrabold text-xl text-slate-900 w-10 text-center">{aiJumlah}</span>
+                    <button onClick={() => setAiJumlah(j => Math.min(10, j + 1))} className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition">
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleGenerateAI}
+                  disabled={aiLoading}
+                  className="w-full py-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {aiLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" />Gemini sedang berfikir...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4" />Generate Soal dengan AI</>
+                  )}
+                </button>
+
+                {aiError && (
+                  <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    <strong>Error:</strong> {aiError}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview Hasil AI */}
+              <div className="card p-5">
+                <h3 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2 mb-3">
+                  Preview Hasil ({aiResult.length} soal)
+                </h3>
+
+                {aiResult.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400">
+                    <Sparkles className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+                    <p className="text-sm">Hasil soal AI akan muncul di sini setelah di-generate.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                    {aiResult.map((soal, idx) => (
+                      <div key={idx} className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="w-5 h-5 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-[10px] font-extrabold">{idx + 1}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${soal.tipe === 'pilihan_ganda' ? 'bg-blue-100 text-blue-800' : soal.tipe === 'esay' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {soal.tipe === 'pilihan_ganda' ? 'PG' : soal.tipe === 'esay' ? 'Esay' : 'Tabel'}
+                          </span>
+                          <span className="text-[10px] text-slate-400">Skor: {soal.skor_maksimal}</span>
+                        </div>
+                        <p className="text-xs text-slate-700 leading-relaxed">{soal.pertanyaan}</p>
+                        {soal.tipe === 'pilihan_ganda' && soal.opsi_jawaban && (
+                          <div className="mt-2 space-y-1">
+                            {soal.opsi_jawaban.map(o => (
+                              <div key={o.label} className={`flex items-center gap-1.5 text-[11px] ${o.benar ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
+                                <span className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[10px] ${o.benar ? 'bg-emerald-600 text-white' : 'bg-slate-200'}`}>{o.label}</span>
+                                {o.teks}
+                                {o.benar && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {aiResult.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Simpan ke Batch</label>
+                      <select
+                        value={aiTargetBatch}
+                        onChange={e => setAiTargetBatch(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      >
+                        <option value="">Pilih batch...</option>
+                        {batches.map(b => (
+                          <option key={b.id} value={b.id}>{b.judul}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {aiSavedCount > 0 && (
+                      <div className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                        ✓ {aiSavedCount} soal berhasil disimpan ke batch!
+                      </div>
+                    )}
+                    <button
+                      onClick={handleSaveAiTooBatch}
+                      disabled={!aiTargetBatch || aiSaving}
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition disabled:opacity-40 flex items-center justify-center gap-2"
+                    >
+                      {aiSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</> : <><Save className="w-4 h-4" />Simpan ke Batch</>}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
+
 
       {/* ─── ADMIN FOOTER ─────────────────────────────────────── */}
       <footer className="border-t border-slate-200 bg-white py-3 mt-auto">

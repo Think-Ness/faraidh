@@ -888,15 +888,24 @@ export class FaraidhEngine {
 
     for (const [, aw] of aktifMap) {
       if (!aw.aktif) {
+        const isHijab = aw.alasan_tidak_aktif?.includes('Terhalang')
         hasil.push({
           kode: aw.kode,
           nama_id: aw.nama_id,
           nama_arab: aw.nama_arab,
           jenis_kelamin: aw.jenis_kelamin,
           jumlah_orang: aw.jumlah_orang,
-          status: aw.alasan_tidak_aktif?.includes('Terhalang') ? 'gugur_hijab' : 'gugur_halangan',
+          status: isHijab ? 'gugur_hijab' : 'gugur_halangan',
           keterangan: aw.alasan_tidak_aktif,
           alasan_gugur: aw.alasan_tidak_aktif,
+          pecahan: 'mahjub',
+          pecahan_arab: 'م (محجوب)',
+          saham_asal: 0,
+          saham_tashih: 0,
+          saham_total_kelompok: 0,
+          saham_per_orang: 0,
+          nominal_per_orang: 0,
+          nominal_total_kelompok: 0,
         })
         continue
       }

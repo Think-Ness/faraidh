@@ -1,612 +1,446 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import {
   BookOpen,
   Calculator,
-  FlaskConical,
-  Loader2,
-  AlertCircle,
-  Sparkles,
   Scale,
-  GraduationCap,
   Layers,
+  ShieldAlert,
+  Users,
+  Clock,
+  Trophy,
   ChevronRight,
-  ShieldCheck,
-  Sliders,
+  GraduationCap,
+  Star,
+  ArrowRight,
+  Sparkles,
+  BookMarked,
 } from 'lucide-react'
-import StepIndicator from '@/components/ui/StepIndicator'
-import StepTirkah from '@/components/calculator/StepTirkah'
-import StepAhliWaris from '@/components/calculator/StepAhliWaris'
-import StepResult from '@/components/calculator/StepResult'
-import type { InputKasus, HasilKalkulasi } from '@/lib/faraidh/types'
-import { hitungFaraidh } from './actions'
 
-// ─── Preset Soal dari Kitab Faraidh KMI Gontor ─────────────────────────
-const PRESET_SOAL = [
+const KONSEP_UTAMA = [
   {
-    id: 'adilah_1',
-    label: 'Soal 1: Kasus Normal (\'Adilah)',
-    arab: 'المسألة العادلة (تساوي السهام مع الأصل)',
-    desc: 'Suami + 2 Anak Perempuan + Ayah + Ibu',
-    descArab: 'زوج + بنتان + أب + أم',
-    input: {
-      nama_pewaris: 'Latihan 1: Kasus \'Adilah (Normal)',
-      harta_kotor: 240_000_000, biaya_tajhiz: 0, hutang_terikat: 0, hutang_biasa: 0, wasiat: 0,
-      ahli_waris_list: [
-        { kode: 'suami', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'anak_pr', jumlah_orang: 2, halangan: 'tidak_ada' as const },
-        { kode: 'ayah', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'ibu', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-      ],
-    },
+    no: '١',
+    judul: 'Tirkah',
+    arab: 'التركة',
+    warna: 'emerald',
+    ringkasan: 'Harta peninggalan bersih setelah dikurangi biaya tajhiz jenazah, hutang, dan wasiat (maks 1/3 harta).',
+    dalil: 'يُوصِيكُمُ اللَّهُ فِي أَوْلَادِكُمْ',
+    sumber: 'QS. An-Nisa\': 11',
   },
   {
-    id: 'aul_1',
-    label: "Soal 2: Masalah 'Aul (Asal Masalah 6 → 7)",
-    arab: 'مسألة العول (ارتفاع الأصل لنقص الأنصباء)',
-    desc: 'Suami + 2 Saudari Kandung + Ibu',
-    descArab: 'زوج + أختان شقيقتان + أم',
-    input: {
-      nama_pewaris: "Latihan 2: Kasus 'Aul (6 ke 7)",
-      harta_kotor: 420_000_000, biaya_tajhiz: 0, hutang_terikat: 0, hutang_biasa: 0, wasiat: 0,
-      ahli_waris_list: [
-        { kode: 'suami', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'saudari_kandung', jumlah_orang: 2, halangan: 'tidak_ada' as const },
-        { kode: 'ibu', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-      ],
-    },
+    no: '٢',
+    judul: 'Furudh Muqaddarah',
+    arab: 'الفروض المقدرة',
+    warna: 'blue',
+    ringkasan: '6 porsi pasti yang telah ditetapkan Al-Quran: 1/2, 1/4, 1/8, 2/3, 1/3, dan 1/6.',
+    dalil: 'فَرِيضَةً مِنَ اللَّهِ',
+    sumber: 'QS. An-Nisa\': 11–12',
   },
   {
-    id: 'gharrawain',
-    label: 'Soal 3: Al-Gharrawain (Al-Umariyyatain)',
-    arab: 'المسألة الغراوية الأولى (ثلث الباقي للأم)',
-    desc: 'Suami + Ibu + Ayah (Ibu dapat 1/3 dari Sisa)',
-    descArab: 'زوج + أم + أب (ثلث الباقي)',
-    input: {
-      nama_pewaris: 'Latihan 3: Kasus Gharrawain',
-      harta_kotor: 600_000_000, biaya_tajhiz: 0, hutang_terikat: 0, hutang_biasa: 0, wasiat: 0,
-      ahli_waris_list: [
-        { kode: 'suami', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'ibu', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'ayah', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-      ],
-    },
+    no: '٣',
+    judul: 'Ashabah',
+    arab: 'العصبة',
+    warna: 'indigo',
+    ringkasan: 'Penerima sisa harta. Terbagi: Bin-Nafsih (12 laki-laki), Bil-Ghair (2:1), dan Maal-Ghair (bersama anak pr).',
+    dalil: 'اجْعَلُوا الْأَخَوَاتِ مَعَ الْبَنَاتِ عَصَبَةً',
+    sumber: 'HR. Ibnu Mas\'ud',
   },
   {
-    id: 'musytarakah',
-    label: 'Soal 4: Al-Musytarakah (Al-Himariyah)',
-    arab: 'المسألة المشتركة / الحمارية',
-    desc: 'Suami + Ibu + 2 Saudara Seibu + Saudara Kandung',
-    descArab: 'زوج + أم + إخوة لأم + أخ شقيق',
-    input: {
-      nama_pewaris: 'Latihan 4: Kasus Musytarakah',
-      harta_kotor: 360_000_000, biaya_tajhiz: 0, hutang_terikat: 0, hutang_biasa: 0, wasiat: 0,
-      ahli_waris_list: [
-        { kode: 'suami', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'ibu', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'saudara_lk_seibu', jumlah_orang: 2, halangan: 'tidak_ada' as const },
-        { kode: 'saudara_lk_kandung', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-      ],
-    },
+    no: '٤',
+    judul: 'Hijab Hirman',
+    arab: 'الحجب الحرمان',
+    warna: 'rose',
+    ringkasan: 'Sistem terhalang total dari warisan. 33 relasi penghalang-terhalang yang saling mempengaruhi urutan waris.',
+    dalil: 'الْجَدَّةُ تَسْقُطُ بِالْأُمِّ',
+    sumber: 'Kaidah Fuqaha',
   },
   {
-    id: 'akdariyyah',
-    label: 'Soal 5: Al-Akdariyyah',
-    arab: 'المسألة الأكدرية (الجد مع الأخت)',
-    desc: 'Suami + Ibu + Kakek + Saudari Kandung',
-    descArab: 'زوج + أم + جد + أخت شقيقة',
-    input: {
-      nama_pewaris: 'Latihan 5: Kasus Akdariyyah',
-      harta_kotor: 540_000_000, biaya_tajhiz: 0, hutang_terikat: 0, hutang_biasa: 0, wasiat: 0,
-      ahli_waris_list: [
-        { kode: 'suami', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'ibu', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'kakek', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'saudari_kandung', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-      ],
-    },
+    no: '٥',
+    judul: 'Asal Masalah',
+    arab: 'أصل المسألة',
+    warna: 'amber',
+    ringkasan: 'Bilangan pokok (2, 3, 4, 6, 8, 12, 24) sebagai penyebut untuk menyamakan semua pecahan porsi waris.',
+    dalil: '\'Aul, Radd & Tashih al-Masail',
+    sumber: 'Kaidah Hisab',
   },
   {
-    id: 'mawani',
-    label: "Soal 6: Mawani' al-Irts (Halangan Waris)",
-    arab: 'موانع الإرث (اختلاف الدين والقتل والرق)',
-    desc: 'Anak laki-laki beda agama / murtad, hak jatuh ke cucu',
-    descArab: 'ابن (كافر) + ابنا ابن + زوجة + أم',
-    input: {
-      nama_pewaris: "Latihan 6: Kasus Mawani' al-Irts",
-      harta_kotor: 300_000_000, biaya_tajhiz: 5_000_000, hutang_terikat: 0, hutang_biasa: 20_000_000, wasiat: 0,
-      ahli_waris_list: [
-        { kode: 'anak_lk', jumlah_orang: 1, halangan: 'beda_agama' as const },
-        { kode: 'cucu_lk', jumlah_orang: 2, halangan: 'tidak_ada' as const },
-        { kode: 'istri', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-        { kode: 'ibu', jumlah_orang: 1, halangan: 'tidak_ada' as const },
-      ],
-    },
+    no: '٦',
+    judul: 'Masalah Khusus',
+    arab: 'المسائل الخاصة',
+    warna: 'purple',
+    ringkasan: '3 masalah istimewa: Al-Gharrawain (ibu 1/3 sisa), Al-Musytarakah (sekutu), dan Al-Akdariyyah (kakek & saudari).',
+    dalil: 'الْمُشَرَّكَةُ وَالْأَكْدَرِيَّةُ',
+    sumber: 'Ijma\' Fuqaha',
   },
 ]
 
-const STEPS = [
-  { id: 1, label: '1. Tirkah & Pembersihan', sublabel: 'Harta', arab: 'التركة والتصفيات' },
-  { id: 2, label: '2. Ahli Waris', sublabel: 'Keluarga', arab: 'الورثة وأحوالهم' },
-  { id: 3, label: '3. Hasil & Saham', sublabel: 'Pembagian', arab: 'قسمة التركة' },
-]
-
-const defaultInput: Omit<InputKasus, 'ahli_waris_list'> = {
-  nama_pewaris: '',
-  harta_kotor: 0,
-  biaya_tajhiz: 0,
-  hutang_terikat: 0,
-  hutang_biasa: 0,
-  wasiat: 0,
+const WARNAMAP: Record<string, { bg: string; border: string; text: string; badge: string; no: string }> = {
+  emerald: {
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    text: 'text-emerald-900',
+    badge: 'bg-emerald-100 text-emerald-800',
+    no: 'bg-emerald-600 text-white',
+  },
+  blue: {
+    bg: 'bg-blue-50',
+    border: 'border-blue-200',
+    text: 'text-blue-900',
+    badge: 'bg-blue-100 text-blue-800',
+    no: 'bg-blue-600 text-white',
+  },
+  indigo: {
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-200',
+    text: 'text-indigo-900',
+    badge: 'bg-indigo-100 text-indigo-800',
+    no: 'bg-indigo-600 text-white',
+  },
+  rose: {
+    bg: 'bg-rose-50',
+    border: 'border-rose-200',
+    text: 'text-rose-900',
+    badge: 'bg-rose-100 text-rose-800',
+    no: 'bg-rose-600 text-white',
+  },
+  amber: {
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    text: 'text-amber-900',
+    badge: 'bg-amber-100 text-amber-800',
+    no: 'bg-amber-500 text-white',
+  },
+  purple: {
+    bg: 'bg-purple-50',
+    border: 'border-purple-200',
+    text: 'text-purple-900',
+    badge: 'bg-purple-100 text-purple-800',
+    no: 'bg-purple-600 text-white',
+  },
 }
 
-type Tab = 'kalkulator' | 'ensiklopedia' | 'simulasi'
+const DASAR_HUKUM = [
+  {
+    sumber: 'Al-Quran',
+    arab: 'القرآن الكريم',
+    isi: 'QS. An-Nisa\': 11–12, 176',
+    desc: 'Ayat-ayat yang secara eksplisit menyebutkan porsi waris setiap ahli waris.',
+  },
+  {
+    sumber: 'Hadis Nabi',
+    arab: 'السنة النبوية',
+    isi: 'HR. Bukhari & Muslim',
+    desc: '"Bagikanlah harta warisan kepada ahlinya (ashab al-furudh), dan sisanya untuk laki-laki yang paling dekat."',
+  },
+  {
+    sumber: 'Ijma\' Ulama',
+    arab: 'إجماع العلماء',
+    isi: 'Konsensus Fuqaha',
+    desc: 'Ulama sepakat wajib mempelajari dan mengamalkan ilmu faraidh karena termasuk separuh ilmu.',
+  },
+]
 
-export default function HomePage() {
-  const [tab, setTab] = useState<Tab>('kalkulator')
-  const [step, setStep] = useState(1)
-  const [tirkah, setTirkah] = useState(defaultInput)
-  const [ahliWarisList, setAhliWarisList] = useState<InputKasus['ahli_waris_list']>([])
-  const [loading, setLoading] = useState(false)
-  const [hasil, setHasil] = useState<HasilKalkulasi | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const reset = () => {
-    setStep(1)
-    setTirkah(defaultInput)
-    setAhliWarisList([])
-    setHasil(null)
-    setError(null)
-  }
-
-  const loadPreset = (preset: typeof PRESET_SOAL[0]) => {
-    const { ahli_waris_list, ...rest } = preset.input
-    setTirkah(rest)
-    setAhliWarisList(ahli_waris_list)
-    setTab('kalkulator')
-    setStep(1)
-    setHasil(null)
-    setError(null)
-  }
-
-  const handleHitung = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await hitungFaraidh({ ...tirkah, ahli_waris_list: ahliWarisList })
-      if (result.success && result.data) {
-        setHasil(result.data)
-        setStep(3)
-      } else {
-        setError(result.error || 'Terjadi kesalahan tidak diketahui.')
-      }
-    } catch (e) {
-      setError('Gagal terhubung ke database. Periksa koneksi Supabase Anda.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       
-      {/* ─── APP HEADER ─────────────────────────────────────── */}
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-4xl mx-auto px-4 py-3 sm:py-3.5 flex items-center justify-between gap-3">
-          {/* Logo & Brand */}
+      {/* ═══ NAVBAR ═══════════════════════════════════════════════════ */}
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
-              <Scale className="w-5 h-5 stroke-[2.2]" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
+              <Scale className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900">
-                  FARAIDH
-                </span>
-                <span className="badge-emerald text-[10px] py-0.5 font-bold">KMI GONTOR</span>
+                <span className="font-extrabold text-sm sm:text-base text-slate-900 tracking-tight">FARAIDH</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">KMI GONTOR</span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium leading-none">
-                Kalkulator Ilmu Waris Islam
-              </p>
+              <p className="text-[10px] text-slate-500 leading-none hidden sm:block">Sistem Kalkulator &amp; Edukasi Waris Islam</p>
             </div>
           </div>
-
-          {/* Header Right (Arabic & Admin Link) */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-arabic text-base text-emerald-800 font-bold leading-tight">
-                علم الفرائض والمواريث
-              </span>
-              <span className="text-[11px] text-slate-500">
-                بناءً على المنهج الدراسي لمعهد دار السلام كونتور
-              </span>
-            </div>
-
+          <nav className="flex items-center gap-2">
             <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 text-xs font-bold transition-all shadow-sm"
-              title="Masuk ke Panel Pengelola & Kaidah Fikih"
+              href="/latihan"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all"
             >
-              <Sliders className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Panel Asatidz</span>
-              <span className="sm:hidden">Admin</span>
+              <Trophy className="w-3.5 h-3.5 text-amber-600" />
+              <span className="hidden sm:inline">Latihan Soal</span>
             </Link>
-          </div>
+            <Link
+              href="/kalkulator"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm"
+            >
+              <Calculator className="w-3.5 h-3.5" />
+              <span>Kalkulator</span>
+            </Link>
+          </nav>
         </div>
       </header>
 
-      {/* ─── HERO BANNER ─────────────────────────────────────── */}
-      <section className="bg-white border-b border-slate-200 pt-7 pb-6">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          {/* Arabic Basmalah */}
-          <p className="text-arabic text-xl sm:text-2xl text-emerald-800 font-bold mb-2 tracking-wide">
+      {/* ═══ HERO SECTION ════════════════════════════════════════════ */}
+      <section className="bg-white border-b border-slate-200 py-16 sm:py-20 relative overflow-hidden">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-50 rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-50 rounded-full blur-3xl opacity-40 translate-y-1/3 -translate-x-1/4" />
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          {/* Basmalah */}
+          <p className="text-arabic text-2xl sm:text-3xl text-emerald-800 font-bold mb-6 tracking-wider leading-loose">
             بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ
           </p>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-2">
-            Kalkulator & Edukasi <span className="text-emerald-700">Ilmu Faraidh</span> Syar'i
-          </h1>
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 text-emerald-800 text-xs font-bold mb-5">
+            <GraduationCap className="w-3.5 h-3.5" />
+            Berdasarkan Kitab Faraidh Kelas 3 KMI Pondok Modern Darussalam Gontor
+          </div>
 
-          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed mb-5">
-            Penghitungan pembagian waris Islam langkah demi langkah secara transparan berdasarkan Kitab Faraidh Kelas 3 KMI Pondok Modern Darussalam Gontor.
+          {/* Headline */}
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
+            Pelajari &amp; Praktikkan<br />
+            <span className="text-emerald-700">Ilmu Faraidh</span> Secara Digital
+          </h1>
+          <p className="text-arabic text-xl sm:text-2xl text-slate-600 font-bold mb-5 leading-loose">
+            علم الفرائض — علم الميراث الإسلامي
+          </p>
+          <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed mb-8">
+            Platform edukasi waris Islam berbasis Rules Engine yang menjalankan 9 fase kaidah syar&apos;i secara otomatis:
+            dari pembersihan tirkah hingga pembagian nominal harta kepada 25 golongan ahli waris.
           </p>
 
-          {/* 3 Metric Pills */}
-          <div className="inline-flex items-center justify-center gap-3 sm:gap-6 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 shadow-sm">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span><strong className="text-slate-800">25</strong> Ahli Waris</span>
-            </div>
-            <div className="w-px h-4 bg-slate-200" />
-            <div className="flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-emerald-600" />
-              <span><strong className="text-slate-800">9</strong> Fase Kaidah</span>
-            </div>
-            <div className="w-px h-4 bg-slate-200" />
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span><strong className="text-slate-800">3</strong> Kasus Khusus</span>
-            </div>
+          {/* Stats Row */}
+          <div className="inline-flex flex-wrap items-center justify-center gap-6 px-6 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-600 mb-10 shadow-sm">
+            {[
+              { icon: Users, val: '25', label: 'Golongan Ahli Waris' },
+              { icon: Scale, val: '6', label: 'Furudh Muqaddarah' },
+              { icon: ShieldAlert, val: '33', label: 'Relasi Hijab Hirman' },
+              { icon: Star, val: '3', label: 'Masalah Khusus' },
+            ].map(s => (
+              <div key={s.label} className="flex items-center gap-2">
+                <s.icon className="w-4 h-4 text-emerald-600" />
+                <span><strong className="text-slate-900 text-base">{s.val}</strong> {s.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/kalkulator"
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 group"
+            >
+              <Calculator className="w-5 h-5" />
+              Buka Kalkulator Faraidh
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/latihan"
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-emerald-300 font-bold text-sm sm:text-base shadow-sm transition-all duration-200 group"
+            >
+              <Trophy className="w-5 h-5 text-amber-600" />
+              Mulai Latihan Soal
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ─── MAIN APP CONTAINER ────────────────────────────────────── */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-8">
+      {/* ═══ APA ITU FARAIDH? ════════════════════════════════════════ */}
+      <section className="py-14 sm:py-16">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 mb-2 block">Tentang Ilmu Ini</span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">Apa itu Ilmu Faraidh?</h2>
+            <p className="text-arabic text-xl text-emerald-800 font-bold mb-3">ما هو علم الفرائض؟</p>
+            <p className="text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Ilmu Faraidh (علم الفرائض) adalah ilmu yang membahas tata cara pembagian harta warisan 
+              menurut syariat Islam, meliputi siapa yang berhak menerima, berapa porsi masing-masing, 
+              dan kondisi-kondisi yang mempengaruhi hak waris.
+            </p>
+          </div>
 
-        {/* Tab Navigation Controls */}
-        <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 mb-6 shadow-sm">
-          {([
-            { id: 'kalkulator', icon: Calculator, label: 'Kalkulator', arab: 'الحاسبة' },
-            { id: 'simulasi', icon: FlaskConical, label: 'Preset Soal Gontor', arab: 'المسائل والتمارين' },
-            { id: 'ensiklopedia', icon: BookOpen, label: 'Ensiklopedia Kaidah', arab: 'موسوعة الفرائض' },
-          ] as const).map(t => {
-            const IconComp = t.icon
-            const active = tab === t.id
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                id={`tab-${t.id}`}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150
-                  ${active
-                    ? 'bg-white text-emerald-800 shadow-sm border border-slate-200/80 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
-              >
-                <IconComp className="w-4 h-4 flex-shrink-0" />
-                <div className="flex items-baseline gap-1.5">
-                  <span>{t.label}</span>
-                  <span className="hidden sm:inline text-arabic text-xs font-normal opacity-80">
-                    ({t.arab})
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {DASAR_HUKUM.map(d => (
+              <div key={d.sumber} className="card p-5 hover:border-emerald-200 transition-colors">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-sm">{d.sumber}</h3>
+                    <p className="text-arabic text-base text-emerald-800 font-bold">{d.arab}</p>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 whitespace-nowrap">
+                    {d.isi}
                   </span>
                 </div>
-              </button>
-            )
-          })}
+                <p className="text-xs text-slate-600 leading-relaxed italic">&ldquo;{d.desc}&rdquo;</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Penting Quote */}
+          <div className="mt-8 rounded-2xl bg-gradient-to-r from-emerald-900 to-slate-900 text-white p-6 sm:p-8 text-center">
+            <p className="text-arabic text-xl sm:text-2xl font-bold leading-loose mb-2">
+              تَعَلَّمُوا الْفَرَائِضَ وَعَلِّمُوهَا فَإِنَّهَا نِصْفُ الْعِلْمِ
+            </p>
+            <p className="text-sm text-emerald-200 font-medium">
+              &ldquo;Pelajarilah ilmu faraidh dan ajarkanlah ia, karena sesungguhnya ia adalah separuh ilmu.&rdquo;
+            </p>
+            <p className="text-xs text-slate-400 mt-1">HR. Ibnu Majah &amp; Ad-Daraquthni</p>
+          </div>
         </div>
+      </section>
 
-        {/* ─── TAB 1: KALKULATOR ─── */}
-        {tab === 'kalkulator' && (
-          <div className="space-y-6">
-            {/* Step Indicator (Steps 1, 2) */}
-            {!loading && step < 3 && (
-              <div className="mb-6">
-                <StepIndicator steps={STEPS} current={step} />
-              </div>
-            )}
-
-            {/* Loading Animation */}
-            {loading && (
-              <div className="card text-center py-16 flex flex-col items-center justify-center gap-4">
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-                    <Scale className="w-7 h-7" />
-                  </div>
-                  <Loader2 className="w-8 h-8 text-emerald-600 animate-spin absolute -bottom-1 -right-1" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-800">Mesin Rules Engine Sedang Berjalan...</h3>
-                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                    Mengeksekusi 9 fase kaidah Faraidh: Tirkah, Mawani', Kasus Khusus, Hijab, Furudh, Ashabah, Asal Masalah, Aul/Radd & Tashih.
-                  </p>
-                  <p className="text-arabic text-sm text-emerald-700 mt-2 font-bold">
-                    جاري تطبيق القواعد الفقهية وحساب الأنصباء...
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Error Alert */}
-            {!loading && error && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-bold text-sm">Terjadi Kesalahan Kalkulasi</p>
-                  <p className="text-xs text-red-700 mt-1 leading-relaxed">{error}</p>
-                  <button
-                    onClick={() => setError(null)}
-                    className="text-xs text-red-600 hover:text-red-800 underline font-semibold mt-2 block"
-                  >
-                    Coba Lagi
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step Components */}
-            {!loading && step === 1 && (
-              <StepTirkah
-                value={tirkah}
-                onChange={setTirkah}
-                onNext={() => setStep(2)}
-              />
-            )}
-
-            {!loading && step === 2 && (
-              <StepAhliWaris
-                value={ahliWarisList}
-                onChange={setAhliWarisList}
-                onNext={handleHitung}
-                onBack={() => setStep(1)}
-              />
-            )}
-
-            {!loading && step === 3 && hasil && (
-              <StepResult hasil={hasil} onReset={reset} />
-            )}
+      {/* ═══ 6 KONSEP UTAMA ═════════════════════════════════════════ */}
+      <section className="py-14 sm:py-16 bg-white border-y border-slate-200">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 mb-2 block">Materi Utama</span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">6 Pilar Kaidah Faraidh</h2>
+            <p className="text-arabic text-xl text-emerald-800 font-bold mb-3">أركان علم الميراث الستة</p>
+            <p className="text-sm text-slate-600 max-w-2xl mx-auto">
+              Berdasarkan kurikulum Kitab Ilmu Faraidh yang diajarkan di Kelas 3 KMI Gontor.
+            </p>
           </div>
-        )}
 
-        {/* ─── TAB 2: PRESET SOAL KITAB GONTOR ─── */}
-        {tab === 'simulasi' && (
-          <div className="space-y-4">
-            <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 text-center">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 mx-auto mb-2">
-                <FlaskConical className="w-5 h-5" />
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Preset Soal & Kasus Ujian Kitab Faraidh
-              </h2>
-              <span className="text-arabic text-base text-amber-800 font-bold block mt-0.5">
-                نماذج من مسائل وتمارين كتاب الفرائض للصف الثالث بمعهد كونتور
-              </span>
-              <p className="text-xs text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
-                Pilih salah satu studi kasus di bawah ini untuk memuat data otomatis ke kalkulator, lalu Anda dapat langsung meninjau langkah penyelesaiannya.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              {PRESET_SOAL.map(preset => (
-                <button
-                  key={preset.id}
-                  onClick={() => loadPreset(preset)}
-                  id={`preset-${preset.id}`}
-                  className="card text-left hover:border-emerald-300 hover:shadow-md transition-all duration-150 group p-4 sm:p-5"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {KONSEP_UTAMA.map(k => {
+              const c = WARNAMAP[k.warna]
+              return (
+                <div
+                  key={k.judul}
+                  className={`rounded-2xl border p-5 ${c.bg} ${c.border} transition-all hover:shadow-md`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors text-sm sm:text-base">
-                          {preset.label}
-                        </span>
-                      </div>
-                      <p className="text-arabic text-base text-emerald-800 font-bold">
-                        {preset.arab}
-                      </p>
-                      <p className="text-xs text-slate-600 font-medium">
-                        Komposisi: {preset.desc}
-                      </p>
-                      <p className="text-[11px] font-mono text-slate-500">
-                        Total Harta Tirkah: Rp {preset.input.harta_kotor.toLocaleString('id-ID')}
-                      </p>
-                    </div>
-
-                    <div className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                      <span>Muat Soal</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-extrabold flex-shrink-0 ${c.no} text-arabic`}>
+                      {k.no}
+                    </span>
+                    <div>
+                      <h3 className={`font-extrabold text-sm ${c.text}`}>{k.judul}</h3>
+                      <p className={`text-arabic text-base font-bold ${c.text} opacity-80`}>{k.arab}</p>
                     </div>
                   </div>
-                </button>
-              ))}
-            </div>
+                  <p className="text-xs text-slate-700 leading-relaxed mb-3">{k.ringkasan}</p>
+                  <div className={`rounded-xl px-3 py-2 ${c.badge} border ${c.border}`}>
+                    <p className="text-arabic text-sm font-bold leading-relaxed">{k.dalil}</p>
+                    <p className="text-[10px] mt-0.5 font-semibold opacity-70">{k.sumber}</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* ─── TAB 3: ENSIKLOPEDIA KAIDAH ─── */}
-        {tab === 'ensiklopedia' && (
-          <div className="space-y-6">
-            <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-5 text-center">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto mb-2">
-                <BookOpen className="w-5 h-5" />
+      {/* ═══ FITUR PLATFORM ═════════════════════════════════════════ */}
+      <section className="py-14 sm:py-16">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 mb-2 block">Platform</span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">Mulai dari Mana?</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Kalkulator */}
+            <div className="card p-6 sm:p-7 border-2 border-emerald-200 bg-emerald-50/30 hover:border-emerald-400 hover:shadow-lg transition-all group">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white mb-4 shadow-sm group-hover:bg-emerald-700 transition-colors">
+                <Calculator className="w-6 h-6" />
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                Ensiklopedia Kaidah Ilmu Faraidh
-              </h2>
-              <span className="text-arabic text-base text-emerald-800 font-bold block mt-0.5">
-                موسوعة قواعد علم الفرائض والمواريث
-              </span>
-              <p className="text-xs text-slate-600 mt-2 max-w-lg mx-auto leading-relaxed">
-                Rangkuman lengkap 6 jenis Furudh Muqaddarah, klasifikasi Ashabah, dan 3 Masalah Khusus yang diajarkan pada kurikulum Gontor.
+              <h3 className="font-extrabold text-lg text-slate-900 mb-1">Kalkulator Faraidh</h3>
+              <p className="text-arabic text-base text-emerald-800 font-bold mb-3">حاسبة الفرائض الشرعية</p>
+              <p className="text-sm text-slate-600 leading-relaxed mb-5">
+                Input data pewaris dan ahli waris, dapatkan hasil pembagian lengkap dengan 9 fase kaidah, 
+                preview format buku, dan log edukasi langkah demi langkah.
               </p>
-            </div>
-
-            {/* 1. Furudh Muqaddarah */}
-            <div className="card space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-emerald-700" />
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                    1. Furudh Muqaddarah (6 Pecahan Pasti)
-                  </h3>
-                </div>
-                <span className="text-arabic text-sm sm:text-base text-emerald-800 font-bold">
-                  الفروض المقدرة في كتاب الله
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th className="w-28">Pecahan (الفرض)</th>
-                      <th>Penerima & Syarat Berlakunya</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                    {[
-                      ['1/2', 'النصف', 'Suami (tanpa anak/cucu); Anak Perempuan tunggal (tanpa saudara laki-laki); Cucu Perempuan tunggal; Saudari Sekandung tunggal; Saudari Seayah tunggal.'],
-                      ['1/4', 'الربع', 'Suami (ada anak/cucu); Istri/istri-istri (tanpa anak/cucu).'],
-                      ['1/8', 'الثمن', 'Istri/istri-istri (jika pewaris memiliki anak atau cucu).'],
-                      ['2/3', 'الثلثان', '2+ Anak Perempuan (tanpa saudara laki-laki); 2+ Cucu Perempuan; 2+ Saudari Sekandung; 2+ Saudari Seayah.'],
-                      ['1/3', 'الثلث', 'Ibu (tanpa anak/cucu & < 2 saudara/i); 2+ Saudara/i Seibu (dibagi rata tanpa membedakan gender).'],
-                      ['1/6', 'السدس', 'Ibu (ada anak/cucu atau 2+ saudara/i); Ayah (ada anak/cucu laki-laki); Kakek Shahih; Nenek Shahihah; Cucu Pr pelengkap 2/3; Saudari Seayah pelengkap 2/3; 1 orang Saudara/i Seibu.'],
-                    ].map(([pecahan, arab, ket]) => (
-                      <tr key={pecahan}>
-                        <td>
-                          <span className="font-mono font-bold text-emerald-700 text-base">{pecahan}</span>
-                          <span className="text-arabic text-sm text-slate-500 block">{arab}</span>
-                        </td>
-                        <td className="text-slate-700 leading-relaxed">{ket}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* 2. Ashabah */}
-            <div className="card space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                    2. Ashabah (Penerima Sisa Harta)
-                  </h3>
-                </div>
-                <span className="text-arabic text-sm sm:text-base text-blue-800 font-bold">
-                  أقسام العصبة في الإرث
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="badge-blue text-xs font-bold">Ashabah Bin-Nafsih (عصبة بنفسه)</span>
-                    <span className="text-arabic text-sm text-blue-800 font-bold">12 Urutan Derajat Laki-laki</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    Anak Lk → Cucu Lk → Ayah → Kakek → Saudara Sekandung → Saudara Seayah → Keponakan Sekandung → Keponakan Seayah → Paman Sekandung → Paman Seayah → Sepupu Sekandung → Sepupu Seayah → Mu'tiq.
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="badge-blue text-xs font-bold">Ashabah Bil-Ghair (عصبة بغيره)</span>
-                    <span className="text-arabic text-sm text-blue-800 font-bold">Ditarik Saudara Laki-laki (Rasio 2:1)</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    Anak Pr + Anak Lk; Cucu Pr + Cucu Lk; Saudari Sekandung + Saudara Sekandung; Saudari Seayah + Saudara Seayah. (للذكر مثل حظ الأنثيين).
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="badge-blue text-xs font-bold">Ashabah Ma'al-Ghair (عصبة مع غيره)</span>
-                    <span className="text-arabic text-sm text-blue-800 font-bold">Bersama Anak/Cucu Perempuan</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    Saudari Sekandung atau Saudari Seayah ketika hadir bersama Anak Perempuan atau Cucu Perempuan, mengambil seluruh sisa harta yang ada. (اجعلوا الأخوات مع البنات عصبة).
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Kasus Khusus */}
-            <div className="card space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-purple-600" />
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                    3. Masalah Khusus (المسائل الخاصة)
-                  </h3>
-                </div>
-                <span className="text-arabic text-sm sm:text-base text-purple-800 font-bold">
-                  الغرواوين والمشتركة والأكدرية
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  {
-                    nama: 'Al-Gharrawain (Al-Umariyyatain)',
-                    arab: 'المسألة الغراوية',
-                    pemicu: 'Suami/Istri + Ibu + Ayah (tanpa anak/cucu, < 2 saudara/i)',
-                    aturan: 'Ibu mendapat 1/3 dari SISA (bukan 1/3 total harta). Pasangan mengambil bagiannya lebih dahulu, lalu Ibu mengambil 1/3 dari sisanya, dan Ayah mengambil sisa akhir (ashabah).'
-                  },
-                  {
-                    nama: 'Al-Musytarakah (Al-Himariyah)',
-                    arab: 'المسألة المشتركة / الحمارية',
-                    pemicu: 'Suami + Ibu + 2+ Saudara/i Seibu + Saudara Laki-laki Sekandung',
-                    aturan: 'Saudara Laki-laki Sekandung ikut bersekutu berbagi rata dalam porsi 1/3 bersama Saudara/i Seibu agar tidak gugur tanpa bagian harta sama sekali.'
-                  },
-                  {
-                    nama: 'Al-Akdariyyah',
-                    arab: 'المسألة الأكدرية',
-                    pemicu: 'Suami + Ibu + Kakek + Saudari Kandung (tanpa ayah/anak)',
-                    aturan: 'Suami 1/2 (3/6), Ibu 1/3 (2/6), Kakek 1/6 (1/6), Saudari 1/2 (3/6). Total = 9/6 (\'Aul ke 9). Porsi Kakek + Saudari (4 saham) digabung lalu dibagi dengan rasio 2:1 (Tashih × 3 = 27).'
-                  },
-                ].map(kk => (
-                  <div key={kk.nama} className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-purple-900 text-sm">{kk.nama}</span>
-                      <span className="text-arabic text-base text-purple-800 font-bold">{kk.arab}</span>
+              <ul className="space-y-1.5 text-xs text-slate-600 mb-6">
+                {['25 Ahli Waris + Mawani\'', 'Hijab Hirman Otomatis', "Kasus 'Aul, Radd & Tashih", 'Preview Jadwal Syubbak'].map(f => (
+                  <li key={f} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-700" />
                     </div>
-                    <p className="text-xs text-slate-600 mb-1 leading-relaxed">
-                      <strong className="text-slate-800">Pemicu Kasus:</strong> {kk.pemicu}
-                    </p>
-                    <p className="text-xs text-slate-700 leading-relaxed">
-                      <strong className="text-purple-800">Penyelesaian Khusus:</strong> {kk.aturan}
-                    </p>
-                  </div>
+                    {f}
+                  </li>
                 ))}
+              </ul>
+              <Link
+                href="/kalkulator"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all"
+              >
+                Buka Kalkulator
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Latihan Soal */}
+            <div className="card p-6 sm:p-7 border-2 border-amber-200 bg-amber-50/30 hover:border-amber-400 hover:shadow-lg transition-all group">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-white mb-4 shadow-sm group-hover:bg-amber-600 transition-colors">
+                <Trophy className="w-6 h-6" />
               </div>
+              <h3 className="font-extrabold text-lg text-slate-900 mb-1">Latihan Soal Interaktif</h3>
+              <p className="text-arabic text-base text-amber-800 font-bold mb-3">التمارين والاختبارات التفاعلية</p>
+              <p className="text-sm text-slate-600 leading-relaxed mb-5">
+                Kerjakan soal-soal yang disiapkan oleh ustadz dalam mode ujian yang sesungguhnya. 
+                Dengan timer, auto-penilaian, dan papan skor tertinggi.
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-600 mb-6">
+                {['Pilihan Ganda, Esay & Isi Tabel', 'Timer Pengerjaan', 'Auto-Penilaian Instan', 'Leaderboard Top 10'].map(f => (
+                  <li key={f} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                    </div>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/latihan"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all"
+              >
+                Lihat Soal &amp; Mulai Latihan
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
-        )}
-      </main>
 
-      {/* ─── APP FOOTER ─────────────────────────────────────── */}
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500 space-y-2">
-        <p className="font-medium text-slate-700">
-          Sistem Faraidh — Berdasarkan Kitab{' '}
-          <span className="text-arabic text-base text-emerald-800 font-bold">علم الفرائض</span>{' '}
-          Kelas 3 KMI Pondok Modern Darussalam Gontor
-        </p>
-        <p className="text-[11px] text-slate-500">
-          Arsitektur Rules Engine: Seluruh kaidah syar'i dikelola secara dinamis via Supabase Database
-        </p>
+          {/* Extra Features Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+            {[
+              { icon: BookOpen, title: 'Ensiklopedia Kaidah', desc: 'Referensi lengkap Furudh, Ashabah & Kasus Khusus', color: 'text-blue-600' },
+              { icon: Clock, title: 'Timer Ujian', desc: 'Pantau durasi pengerjaan soal real-time', color: 'text-indigo-600' },
+              { icon: Sparkles, title: 'AI Generator Soal', desc: 'Soal dibuat oleh Gemini AI (untuk asatidz)', color: 'text-purple-600' },
+              { icon: BookMarked, title: 'Format Buku Gontor', desc: 'Output dalam format Jadwal Syubbak klasik', color: 'text-emerald-600' },
+            ].map(f => (
+              <div key={f.title} className="card p-4 text-center hover:border-slate-300 transition-colors">
+                <f.icon className={`w-6 h-6 mx-auto mb-2 ${f.color}`} />
+                <h4 className="font-bold text-xs text-slate-900 mb-1">{f.title}</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FOOTER ════════════════════════════════════════════════= */}
+      <footer className="border-t border-slate-200 bg-white py-10">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white">
+              <Scale className="w-5 h-5" />
+            </div>
+            <span className="font-extrabold text-slate-900">FARAIDH</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">KMI GONTOR</span>
+          </div>
+          <p className="text-xs text-slate-600 font-medium mb-1">
+            Sistem Edukasi Faraidh — Berdasarkan Kitab{' '}
+            <span className="text-arabic text-base text-emerald-800 font-bold">علم الفرائض</span>{' '}
+            Kelas 3 KMI Pondok Modern Darussalam Gontor
+          </p>
+          <p className="text-[11px] text-slate-400">
+            Rules Engine berbasis Supabase · 9 Fase Kaidah Syar&apos;i · AI Powered (Gemini)
+          </p>
+        </div>
       </footer>
     </div>
   )

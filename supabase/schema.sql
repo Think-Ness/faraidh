@@ -151,6 +151,63 @@ CREATE TABLE IF NOT EXISTS hasil_perhitungan (
 );
 
 -- ============================================================
+-- SISTEM LATIHAN SOAL (Batch Soal untuk Santri)
+-- ============================================================
+
+-- 13. BATCH SOAL (Satu set soal ujian)
+CREATE TABLE IF NOT EXISTS soal_batch (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    judul VARCHAR(200) NOT NULL,
+    deskripsi TEXT,
+    kelas_target VARCHAR(50),          -- 'Kelas 3 KMI', 'Semua', dll
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR(100),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 14. SOAL INDIVIDUAL (Item per batch)
+CREATE TABLE IF NOT EXISTS soal_item (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    batch_id UUID REFERENCES soal_batch(id) ON DELETE CASCADE,
+    urutan INT NOT NULL DEFAULT 1,
+    tipe VARCHAR(30) NOT NULL CHECK (tipe IN ('pilihan_ganda', 'esay', 'isi_tabel')),
+    pertanyaan TEXT NOT NULL,
+    pertanyaan_arab TEXT,
+    konteks_kasus JSONB,               -- { ahli_waris: [], harta: N, keterangan: '...' }
+    opsi_jawaban JSONB,                -- [{ label: 'A', teks: '...', benar: true }]
+    jawaban_benar TEXT,                -- Kunci jawaban esay (referensi)
+    data_isi_tabel JSONB,              -- { judul_kolom: [], baris: [] } untuk tipe isi_tabel
+    skor_maksimal INT DEFAULT 10,
+    petunjuk TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 15. SESI PENGERJAAN SANTRI
+CREATE TABLE IF NOT EXISTS sesi_latihan (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    batch_id UUID REFERENCES soal_batch(id) ON DELETE CASCADE,
+    nama_santri VARCHAR(200) NOT NULL,
+    kelas VARCHAR(100),                -- 'Kelas 3-B', '1 Int-A', dll
+    mulai_pada TIMESTAMP DEFAULT NOW(),
+    selesai_pada TIMESTAMP,
+    durasi_detik INT,                  -- Dihitung saat submit
+    is_selesai BOOLEAN DEFAULT FALSE,
+    skor_total INT DEFAULT 0,
+    skor_persen DECIMAL(5,2)
+);
+
+-- 16. JAWABAN PER SOAL (per sesi)
+CREATE TABLE IF NOT EXISTS jawaban_sesi (
+    id SERIAL PRIMARY KEY,
+    sesi_id UUID REFERENCES sesi_latihan(id) ON DELETE CASCADE,
+    soal_id UUID REFERENCES soal_item(id) ON DELETE CASCADE,
+    jawaban_santri TEXT,               -- Label pilihan ('A') atau teks esay atau JSON untuk tabel
+    is_benar BOOLEAN,
+    skor_dapat INT DEFAULT 0,
+    waktu_jawab TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================
 
@@ -186,6 +243,30 @@ CREATE POLICY "public insert kasus_ahli_waris" ON kasus_ahli_waris FOR INSERT WI
 CREATE POLICY "public select kasus_ahli_waris" ON kasus_ahli_waris FOR SELECT USING (true);
 CREATE POLICY "public insert hasil_perhitungan" ON hasil_perhitungan FOR INSERT WITH CHECK (true);
 CREATE POLICY "public select hasil_perhitungan" ON hasil_perhitungan FOR SELECT USING (true);
+
+-- RLS: Tabel latihan soal (publik baca, publik insert sesi & jawaban)
+ALTER TABLE soal_batch ENABLE ROW LEVEL SECURITY;
+ALTER TABLE soal_item ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sesi_latihan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE jawaban_sesi ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "public read soal_batch" ON soal_batch FOR SELECT USING (true);
+CREATE POLICY "public insert soal_batch" ON soal_batch FOR INSERT WITH CHECK (true);
+CREATE POLICY "public update soal_batch" ON soal_batch FOR UPDATE USING (true);
+CREATE POLICY "public delete soal_batch" ON soal_batch FOR DELETE USING (true);
+
+CREATE POLICY "public read soal_item" ON soal_item FOR SELECT USING (true);
+CREATE POLICY "public insert soal_item" ON soal_item FOR INSERT WITH CHECK (true);
+CREATE POLICY "public update soal_item" ON soal_item FOR UPDATE USING (true);
+CREATE POLICY "public delete soal_item" ON soal_item FOR DELETE USING (true);
+
+CREATE POLICY "public read sesi_latihan" ON sesi_latihan FOR SELECT USING (true);
+CREATE POLICY "public insert sesi_latihan" ON sesi_latihan FOR INSERT WITH CHECK (true);
+CREATE POLICY "public update sesi_latihan" ON sesi_latihan FOR UPDATE USING (true);
+
+CREATE POLICY "public read jawaban_sesi" ON jawaban_sesi FOR SELECT USING (true);
+CREATE POLICY "public insert jawaban_sesi" ON jawaban_sesi FOR INSERT WITH CHECK (true);
+
 
 -- ============================================================
 -- SEED DATA
