@@ -476,51 +476,140 @@ export class FaraidhEngine {
       }
     }
 
-    // Kumpulkan semua pecahan yang berlaku
-    const pecahan_list: string[] = []
-    for (const [, aw] of aktifMap) {
-      if (!aw.aktif || !aw.pecahan_aktif) continue
-      if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
-      if (aw.pecahan_aktif === '1/6+sisa') {
-        pecahan_list.push('1/6')
-        continue
-      }
-      if (aw.pecahan_aktif === '1/3_gabungan') {
-        pecahan_list.push('1/3')
-        continue
-      }
-      pecahan_list.push(aw.pecahan_aktif)
-    }
-
-    let asal_masalah = pecahan_list.length > 0 
-      ? hitungAsalMasalah(pecahan_list) 
-      : (total_ruus_ashabah > 0 ? total_ruus_ashabah : 1)
-
-    // Hitung saham per ahli waris furudh
-    for (const [, aw] of aktifMap) {
-      if (!aw.aktif) continue
-      if (!aw.pecahan_aktif || aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
-      const p = aw.pecahan_aktif === '1/3_gabungan' ? '1/3' :
-                aw.pecahan_aktif === '1/6+sisa' ? '1/6' :
-                aw.pecahan_aktif
-      aw.saham_total = pecahanKeSaham(p, asal_masalah)
-    }
-
-    log.push({
-      fase: 6,
-      judul: "Ta'shil — Pencarian Asal Masalah (KPK Penyebut)",
-      judul_arab: "التأصيل — إيجاد أصل المسألة",
-      penjelasan: `Asal Masalah (penyebut pokok): ${asal_masalah}. ${pecahan_list.length > 0 ? 'Ini adalah KPK dari semua penyebut pecahan yang berlaku.' : 'Ditetapkan dari total ru\'us (kepala) Ashabah.'}`,
-      detail: [
-        `Pecahan aktif: ${pecahan_list.join(', ') || '— (murni Ashabah)'}`,
-        `Asal Masalah = ${asal_masalah}`,
-      ],
-    })
-
-    const asal_masalah_pokok = asal_masalah
+    let asal_masalah = 1
+    let asal_masalah_pokok = 1
     let asal_masalah_aul: number | undefined = undefined
     let asal_masalah_radd: number | undefined = undefined
     let penjelasan_perpindahan = ''
+
+    if (kasusKhususAktif === 'gharrawain') {
+      const suami = aktifMap.get('suami')
+      const istri = aktifMap.get('istri')
+      const ibu = aktifMap.get('ibu')
+      const ayah = aktifMap.get('ayah')
+
+      if (suami?.aktif) {
+        asal_masalah = 6
+        suami.saham_total = 3
+        suami.saham_asal = 3
+        if (ibu?.aktif) { ibu.saham_total = 1; ibu.saham_asal = 1 }
+        if (ayah?.aktif) { ayah.saham_total = 2; ayah.saham_asal = 2 }
+      } else if (istri?.aktif) {
+        asal_masalah = 4
+        istri.saham_total = 1
+        istri.saham_asal = 1
+        if (ibu?.aktif) { ibu.saham_total = 1; ibu.saham_asal = 1 }
+        if (ayah?.aktif) { ayah.saham_total = 2; ayah.saham_asal = 2 }
+      }
+      asal_masalah_pokok = asal_masalah
+
+      log.push({
+        fase: 6,
+        judul: "Ta'shil — Pencarian Asal Masalah (Al-Gharrawain)",
+        judul_arab: "التأصيل — إيجاد أصل المسألة (الغراوين)",
+        penjelasan: `Asal Masalah Pokok ditetapkan ${asal_masalah} (${suami?.aktif ? 'Suami 1/2 = 3 saham, Ibu 1/3 dari sisa = 1 saham, Ayah Ashabah = 2 saham' : 'Istri 1/4 = 1 saham, Ibu 1/3 dari sisa = 1 saham, Ayah Ashabah = 2 saham'}).`,
+        detail: [
+          'Kasus Khusus: Al-Gharrawain (Al-Umariyyatain)',
+          `Asal Masalah = ${asal_masalah}`,
+        ],
+      })
+    } else if (kasusKhususAktif === 'musytarakah') {
+      asal_masalah = 6
+      asal_masalah_pokok = 6
+      const suami = aktifMap.get('suami')
+      const ibu = aktifMap.get('ibu')
+      const nenek_ibu = aktifMap.get('nenek_ibu')
+      const nenek_ayah = aktifMap.get('nenek_ayah')
+      if (suami?.aktif) { suami.saham_total = 3; suami.saham_asal = 3 }
+      if (ibu?.aktif) { ibu.saham_total = 1; ibu.saham_asal = 1 }
+      else if (nenek_ibu?.aktif) { nenek_ibu.saham_total = 1; nenek_ibu.saham_asal = 1 }
+      else if (nenek_ayah?.aktif) { nenek_ayah.saham_total = 1; nenek_ayah.saham_asal = 1 }
+
+      const seibu_lk = aktifMap.get('saudara_lk_seibu')
+      const seibu_pr = aktifMap.get('saudari_seibu')
+      const saudaraSkandung = aktifMap.get('saudara_lk_kandung')
+      const saudariSkandung = aktifMap.get('saudari_kandung')
+      const total_sekutu = (seibu_lk?.jumlah_orang || 0) + (seibu_pr?.jumlah_orang || 0) + (saudaraSkandung?.jumlah_orang || 0) + (saudariSkandung?.jumlah_orang || 0)
+      
+      const sekutuList = [seibu_lk, seibu_pr, saudaraSkandung, saudariSkandung].filter(a => a?.aktif)
+      for (const aw of sekutuList) {
+        if (!aw) continue
+        const share = total_sekutu > 0 ? (2 * aw.jumlah_orang) / total_sekutu : 0
+        aw.saham_total = share
+        aw.saham_asal = share
+      }
+
+      log.push({
+        fase: 6,
+        judul: "Ta'shil — Asal Masalah (Al-Musytarakah)",
+        judul_arab: "التأصيل — إيجاد أصل المسألة (المشتركة)",
+        penjelasan: `Asal Masalah Pokok = 6. Suami (1/2) = 3 saham, Ibu (1/6) = 1 saham, dan 1/3 (2 saham) dibagi sekutu saudara seibu dan saudara kandung.`,
+        detail: ['Asal Masalah = 6'],
+      })
+    } else if (kasusKhususAktif === 'akdariyyah') {
+      asal_masalah = 6
+      asal_masalah_pokok = 6
+      const suami = aktifMap.get('suami')
+      const ibu = aktifMap.get('ibu')
+      const kakek = aktifMap.get('kakek')
+      const saudari = aktifMap.get('saudari_kandung') || aktifMap.get('saudari_seayah')
+
+      if (suami?.aktif) { suami.saham_total = 3; suami.saham_asal = 3 }
+      if (ibu?.aktif) { ibu.saham_total = 2; ibu.saham_asal = 2 }
+      if (kakek?.aktif) { kakek.saham_total = 1; kakek.saham_asal = 1 }
+      if (saudari?.aktif) { saudari.saham_total = 3; saudari.saham_asal = 3 }
+
+      log.push({
+        fase: 6,
+        judul: "Ta'shil — Asal Masalah (Al-Akdariyyah)",
+        judul_arab: "التأصيل — إيجاد أصل المسألة (الأكدرية)",
+        penjelasan: `Asal Masalah Pokok = 6. Suami (1/2) = 3, Ibu (1/3) = 2, Kakek (1/6) = 1, Saudari (1/2) = 3. Total saham = 9 ('Aul).`,
+        detail: ['Asal Masalah = 6'],
+      })
+    } else {
+      // Jalur perhitungan Ta'shil normal
+      // Kumpulkan semua pecahan yang berlaku
+      const pecahan_list: string[] = []
+      for (const [, aw] of aktifMap) {
+        if (!aw.aktif || !aw.pecahan_aktif) continue
+        if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
+        if (aw.pecahan_aktif === '1/6+sisa') {
+          pecahan_list.push('1/6')
+          continue
+        }
+        if (aw.pecahan_aktif === '1/3_gabungan') {
+          pecahan_list.push('1/3')
+          continue
+        }
+        pecahan_list.push(aw.pecahan_aktif)
+      }
+
+      asal_masalah = pecahan_list.length > 0 
+        ? hitungAsalMasalah(pecahan_list) 
+        : (total_ruus_ashabah > 0 ? total_ruus_ashabah : 1)
+      asal_masalah_pokok = asal_masalah
+
+      // Hitung saham per ahli waris furudh
+      for (const [, aw] of aktifMap) {
+        if (!aw.aktif) continue
+        if (!aw.pecahan_aktif || aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
+        const p = aw.pecahan_aktif === '1/3_gabungan' ? '1/3' :
+                  aw.pecahan_aktif === '1/6+sisa' ? '1/6' :
+                  aw.pecahan_aktif
+        aw.saham_total = pecahanKeSaham(p, asal_masalah)
+      }
+
+      log.push({
+        fase: 6,
+        judul: "Ta'shil — Pencarian Asal Masalah (KPK Penyebut)",
+        judul_arab: "التأصيل — إيجاد أصل المسألة",
+        penjelasan: `Asal Masalah (penyebut pokok): ${asal_masalah}. ${pecahan_list.length > 0 ? 'Ini adalah KPK dari semua penyebut pecahan yang berlaku.' : 'Ditetapkan dari total ru\'us (kepala) Ashabah.'}`,
+        detail: [
+          `Pecahan aktif: ${pecahan_list.join(', ') || '— (murni Ashabah)'}`,
+          `Asal Masalah = ${asal_masalah}`,
+        ],
+      })
+    }
 
     // ─── FASE 7: 'AUL / RADD ──────────────────────────────────
     let total_saham = 0
@@ -534,9 +623,38 @@ export class FaraidhEngine {
     let status_penyelesaian: StatusPenyelesaian = 'adilah'
     let sisa_saham = asal_masalah - total_saham
 
-    if (kasusKhususAktif) {
+    if (kasusKhususAktif === 'akdariyyah') {
       status_penyelesaian = 'kasus_khusus'
-      penjelasan_perpindahan = 'Penyelesaian mengacu pada kaidah Masalah Khusus (Al-Gharrawain / Al-Musytarakah / Al-Akdariyyah).'
+      asal_masalah_aul = 9
+      asal_masalah = 9
+      sisa_saham = 0
+      penjelasan_perpindahan = "Asal Masalah 6 mengalami 'Aul membengkak menjadi 9, kemudian bagian Kakek (1) dan Saudari (3) digabung menjadi 4 saham lalu di-tashih (Al-Akdariyyah)."
+      log.push({
+        fase: 7,
+        judul: "Al-Akdariyyah — 'Aul ke 9",
+        judul_arab: "الأكدرية — العول إلى ٩",
+        penjelasan: "Total saham (3 + 2 + 1 + 3 = 9) melebihi Asal Masalah (6). Asal Masalah di-'aul ke 9.",
+      })
+    } else if (kasusKhususAktif === 'gharrawain') {
+      status_penyelesaian = 'kasus_khusus'
+      sisa_saham = 0
+      penjelasan_perpindahan = `Penyelesaian Kasus Khusus Al-Gharrawain (Al-Umariyyatain): Asal Masalah Pokok ${asal_masalah_pokok}. Ibu menerima 1/3 dari Sisa (${aktifMap.get('suami')?.aktif ? 'Suami 3 saham, Ibu 1 saham, Ayah 2 saham' : 'Istri 1 saham, Ibu 1 saham, Ayah 2 saham'}).`
+      log.push({
+        fase: 7,
+        judul: 'Al-Gharrawain — Pembagian 1/3 dari Sisa',
+        judul_arab: 'الغراوين — ثلث الباقي',
+        penjelasan: `Ibu mendapatkan 1/3 dari sisa harta setelah bagian pasangan diambil. Ayah mengambil sisa akhir sebagai Ashabah bin-nafsih.`,
+      })
+    } else if (kasusKhususAktif === 'musytarakah') {
+      status_penyelesaian = 'kasus_khusus'
+      sisa_saham = 0
+      penjelasan_perpindahan = 'Penyelesaian Kasus Khusus Al-Musytarakah (Al-Himariyyah): Asal Masalah 6. Saudara kandung bersekutu dalam 1/3 bagian bersama saudara seibu secara setara.'
+      log.push({
+        fase: 7,
+        judul: 'Al-Musytarakah — Sekutu dalam 1/3',
+        judul_arab: 'المشتركة — التشريك في الثلث',
+        penjelasan: 'Saudara laki-laki kandung bersekutu dengan saudara seibu dalam 1/3 harta (2 saham) dan dibagi rata tanpa membedakan jenis kelamin.',
+      })
     } else if (total_saham > asal_masalah) {
       // 'AUL
       const asal_lama = asal_masalah
@@ -584,20 +702,22 @@ export class FaraidhEngine {
     }
 
     // Hitung saham Ashabah awal (sebelum Tashih)
-    for (const aw of ashabah_aktif) {
-      if (aw.pecahan_aktif === '1/6+sisa') {
-        const saham_1_6 = pecahanKeSaham('1/6', asal_masalah)
-        const saham_sisa_ini = sisa_saham > 0 ? sisa_saham : 0
-        aw.saham_total = saham_1_6 + saham_sisa_ini
-        sisa_saham = 0
-      }
-    }
-
-    if (total_ruus_ashabah > 0 && sisa_saham > 0) {
+    if (!kasusKhususAktif) {
       for (const aw of ashabah_aktif) {
-        if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') {
-          const ruusAw = aw.jumlah_orang * getRuusPerJiwa(aw)
-          aw.saham_total = (sisa_saham * ruusAw) / total_ruus_ashabah
+        if (aw.pecahan_aktif === '1/6+sisa') {
+          const saham_1_6 = pecahanKeSaham('1/6', asal_masalah)
+          const saham_sisa_ini = sisa_saham > 0 ? sisa_saham : 0
+          aw.saham_total = saham_1_6 + saham_sisa_ini
+          sisa_saham = 0
+        }
+      }
+
+      if (total_ruus_ashabah > 0 && sisa_saham > 0) {
+        for (const aw of ashabah_aktif) {
+          if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') {
+            const ruusAw = aw.jumlah_orang * getRuusPerJiwa(aw)
+            aw.saham_total = (sisa_saham * ruusAw) / total_ruus_ashabah
+          }
         }
       }
     }
@@ -618,7 +738,7 @@ export class FaraidhEngine {
     // 1. Cek inkisar pada kelompok Ashabul Furudh
     for (const [, aw] of aktifMap) {
       if (!aw.aktif || !aw.saham_total || aw.jumlah_orang <= 1) continue
-      if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
+      if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1' || aw.pecahan_aktif === '1/3_gabungan' || aw.pecahan_aktif === '1/3_sisa') continue
       const saham = Math.round(aw.saham_total)
       const kepala = aw.jumlah_orang
       if (saham % kepala !== 0) {
@@ -642,8 +762,8 @@ export class FaraidhEngine {
       }
     }
 
-    // 2. Cek inkisar pada kelompok Ashabah
-    if (total_ruus_ashabah > 0 && sisa_saham > 0) {
+    // 2. Cek inkisar pada kelompok Ashabah (selain kasus khusus)
+    if (!kasusKhususAktif && total_ruus_ashabah > 0 && sisa_saham > 0) {
       if (isBilGhairActive) {
         // Gabungan 2:1 (anak laki + anak perempuan, cucu, saudara)
         const sahamAshabah = sisa_saham
@@ -717,7 +837,8 @@ export class FaraidhEngine {
       const seibu_lk = aktifMap.get('saudara_lk_seibu')
       const seibu_pr = aktifMap.get('saudari_seibu')
       const saudaraSkandung = aktifMap.get('saudara_lk_kandung')
-      const total_sekutu = (seibu_lk?.jumlah_orang || 0) + (seibu_pr?.jumlah_orang || 0) + (saudaraSkandung?.jumlah_orang || 0)
+      const saudariSkandung = aktifMap.get('saudari_kandung')
+      const total_sekutu = (seibu_lk?.jumlah_orang || 0) + (seibu_pr?.jumlah_orang || 0) + (saudaraSkandung?.jumlah_orang || 0) + (saudariSkandung?.jumlah_orang || 0)
       if (total_sekutu > 0 && 2 % total_sekutu !== 0) {
         const rel = gcd(2, total_sekutu) > 1 ? 'muwafaqah' : 'mubayanah'
         const m = hitungMahfudzat(2, total_sekutu)
@@ -747,7 +868,7 @@ export class FaraidhEngine {
         const suami = aktifMap.get('suami')
         const ibu = aktifMap.get('ibu')
         const kakek = aktifMap.get('kakek')
-        const saudari = aktifMap.get('saudari_kandung')
+        const saudari = aktifMap.get('saudari_kandung') || aktifMap.get('saudari_seayah')
         if (suami?.aktif) suami.saham_total = 3 * juz_sahm
         if (ibu?.aktif) ibu.saham_total = 2 * juz_sahm
         const combined = 4 * juz_sahm
@@ -756,16 +877,33 @@ export class FaraidhEngine {
       } else if (kasusKhususAktif === 'musytarakah') {
         const suami = aktifMap.get('suami')
         const ibu = aktifMap.get('ibu')
+        const nenek_ibu = aktifMap.get('nenek_ibu')
+        const nenek_ayah = aktifMap.get('nenek_ayah')
         if (suami?.aktif) suami.saham_total = 3 * juz_sahm
         if (ibu?.aktif) ibu.saham_total = 1 * juz_sahm
+        else if (nenek_ibu?.aktif) nenek_ibu.saham_total = 1 * juz_sahm
+        else if (nenek_ayah?.aktif) nenek_ayah.saham_total = 1 * juz_sahm
+
         const seibu_lk = aktifMap.get('saudara_lk_seibu')
         const seibu_pr = aktifMap.get('saudari_seibu')
         const saudaraSkandung = aktifMap.get('saudara_lk_kandung')
-        const total_sekutu = (seibu_lk?.jumlah_orang || 0) + (seibu_pr?.jumlah_orang || 0) + (saudaraSkandung?.jumlah_orang || 0)
+        const saudariSkandung = aktifMap.get('saudari_kandung')
+        const total_sekutu = (seibu_lk?.jumlah_orang || 0) + (seibu_pr?.jumlah_orang || 0) + (saudaraSkandung?.jumlah_orang || 0) + (saudariSkandung?.jumlah_orang || 0)
         const total_saham_sekutu = 2 * juz_sahm
-        if (seibu_lk?.aktif) seibu_lk.saham_total = Math.round((total_saham_sekutu * seibu_lk.jumlah_orang) / total_sekutu)
-        if (seibu_pr?.aktif) seibu_pr.saham_total = Math.round((total_saham_sekutu * seibu_pr.jumlah_orang) / total_sekutu)
-        if (saudaraSkandung?.aktif) saudaraSkandung.saham_total = Math.round((total_saham_sekutu * saudaraSkandung.jumlah_orang) / total_sekutu)
+        const sekutuList = [seibu_lk, seibu_pr, saudaraSkandung, saudariSkandung].filter(a => a?.aktif)
+        for (const aw of sekutuList) {
+          if (!aw) continue
+          aw.saham_total = Math.round((total_saham_sekutu * aw.jumlah_orang) / total_sekutu)
+        }
+      } else if (kasusKhususAktif === 'gharrawain') {
+        const suami = aktifMap.get('suami')
+        const istri = aktifMap.get('istri')
+        const ibu = aktifMap.get('ibu')
+        const ayah = aktifMap.get('ayah')
+        if (suami?.aktif) suami.saham_total = 3 * juz_sahm
+        if (istri?.aktif) istri.saham_total = 1 * juz_sahm
+        if (ibu?.aktif) ibu.saham_total = 1 * juz_sahm
+        if (ayah?.aktif) ayah.saham_total = 2 * juz_sahm
       } else {
         // Kalikan semua Furudh dengan juz_sahm
         for (const [, aw] of aktifMap) {
@@ -820,6 +958,8 @@ export class FaraidhEngine {
       'sisa_2:1': 'عصبة بالغير (ع)',
       '1/6+sisa': 'السدس + عصبة (١/٦ + ع)',
       '1/3_gabungan': 'الثلث مشترك (١/٣)',
+      '1/3_sisa': 'ثلث الباقي (١/٣ الباقي)',
+      '1/3 dari sisa': 'ثلث الباقي (١/٣ الباقي)',
     }
 
     const generateAlasanSyarat = (aw: AhliWarisAktif, listKode: string[]): string => {
@@ -1139,44 +1279,53 @@ export class FaraidhEngine {
       const ibu = aktifMap.get('ibu')
       const ayah = aktifMap.get('ayah')
 
-      const bagian_suami = suami?.aktif ? 1/2 : 0
-      const bagian_istri = istri?.aktif ? 1/4 : 0
-      const bagian_pasangan = bagian_suami || bagian_istri
-      const sisa_setelah_pasangan = 1 - bagian_pasangan
-      const bagian_ibu = sisa_setelah_pasangan / 3
-
-      if (suami?.aktif) { suami.pecahan_aktif = '1/2'; suami.saham_total = 3 }
-      if (istri?.aktif) { istri.pecahan_aktif = '1/4'; istri.saham_total = Math.round(1/4 * 12) }
-      if (ibu?.aktif) { ibu.pecahan_aktif = '1/3 dari sisa'; }
-      if (ayah?.aktif) { ayah.pecahan_aktif = 'sisa'; ayah.jenis_ashabah = 'bin_nafsih' }
+      if (suami?.aktif) {
+        suami.pecahan_aktif = '1/2'
+      }
+      if (istri?.aktif) {
+        istri.pecahan_aktif = '1/4'
+      }
+      if (ibu?.aktif) {
+        ibu.pecahan_aktif = '1/3_sisa'
+      }
+      if (ayah?.aktif) {
+        ayah.pecahan_aktif = 'sisa'
+        ayah.jenis_ashabah = 'bin_nafsih'
+      }
 
     } else if (kode === 'musytarakah') {
       const suami = aktifMap.get('suami')
       const ibu = aktifMap.get('ibu')
+      const nenek_ibu = aktifMap.get('nenek_ibu')
+      const nenek_ayah = aktifMap.get('nenek_ayah')
       const saudaraSkandung = aktifMap.get('saudara_lk_kandung')
+      const saudariSkandung = aktifMap.get('saudari_kandung')
 
       if (suami?.aktif) suami.pecahan_aktif = '1/2'
       if (ibu?.aktif) ibu.pecahan_aktif = '1/6'
+      else if (nenek_ibu?.aktif) nenek_ibu.pecahan_aktif = '1/6'
+      else if (nenek_ayah?.aktif) nenek_ayah.pecahan_aktif = '1/6'
+
       // Saudara seibu + saudara kandung berbagi rata 1/3
       const seibu_lk = aktifMap.get('saudara_lk_seibu')
       const seibu_pr = aktifMap.get('saudari_seibu')
       if (seibu_lk?.aktif) seibu_lk.pecahan_aktif = '1/3_gabungan'
       if (seibu_pr?.aktif) seibu_pr.pecahan_aktif = '1/3_gabungan'
       if (saudaraSkandung?.aktif) saudaraSkandung.pecahan_aktif = '1/3_gabungan'
+      if (saudariSkandung?.aktif) saudariSkandung.pecahan_aktif = '1/3_gabungan'
 
     } else if (kode === 'akdariyyah') {
       const suami = aktifMap.get('suami')
       const ibu = aktifMap.get('ibu')
       const kakek = aktifMap.get('kakek')
       const saudariKandung = aktifMap.get('saudari_kandung')
+      const saudariSeayah = aktifMap.get('saudari_seayah')
 
-      // Suami 1/2, Ibu 1/3, Kakek 1/6, Saudari 1/2 → 'Aul ke 9
-      // Lalu Kakek+Saudari gabung dibagi 2:1
       if (suami?.aktif) suami.pecahan_aktif = '1/2'
       if (ibu?.aktif) ibu.pecahan_aktif = '1/3'
       if (kakek?.aktif) kakek.pecahan_aktif = '1/6'
       if (saudariKandung?.aktif) saudariKandung.pecahan_aktif = '1/2'
-      // Asal masalah = 9 (di-aul dari 6 → 1+3+1+3 = 8... ditangani di ta'shil)
+      else if (saudariSeayah?.aktif) saudariSeayah.pecahan_aktif = '1/2'
     }
   }
 }

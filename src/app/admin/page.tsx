@@ -174,8 +174,14 @@ function formatTextbookArabicName(kode: string, count: number, defaultArab: stri
 // ─── Format Porsi into Arabic Fraction (٢/٣, ١/٦, etc.) ────────────────
 function formatArabicFraction(pecahan?: string): string {
   if (!pecahan) return 'ع'
-  if (pecahan === 'sisa' || pecahan === 'ashabah' || pecahan === 'sisa_2:1' || pecahan.toLowerCase().includes('sisa') || pecahan.toLowerCase().includes('ashabah')) {
-    return 'ع'
+  if (pecahan === '1/3_sisa' || pecahan === '1/3 dari sisa' || pecahan.includes('1/3_sisa') || pecahan.includes('ثلث الباقي') || pecahan.includes('1/3 Sisa') || pecahan.includes('1/3 dari sisa') || pecahan.includes('1/3 dari Sisa')) {
+    return '١/٣ الباقي'
+  }
+  if (pecahan === '1/6+sisa' || pecahan === '1/6+ع') {
+    return '١/٦ + ع'
+  }
+  if (pecahan === '1/3_gabungan') {
+    return '١/٣'
   }
   if (pecahan === '1/2') return '١/٢'
   if (pecahan === '1/4') return '١/٤'
@@ -183,8 +189,9 @@ function formatArabicFraction(pecahan?: string): string {
   if (pecahan === '2/3') return '٢/٣'
   if (pecahan === '1/3') return '١/٣'
   if (pecahan === '1/6') return '١/٦'
-  if (pecahan === '1/6+sisa') return '١/٦ + ع'
-  if (pecahan === '1/3_sisa') return '١/٣ الباقي'
+  if (pecahan === 'sisa' || pecahan === 'ashabah' || pecahan === 'sisa_2:1' || pecahan.toLowerCase().includes('sisa') || pecahan.toLowerCase().includes('ashabah') || pecahan === 'ع') {
+    return 'ع'
+  }
   return toArabicDigits(pecahan)
 }
 
@@ -3597,25 +3604,66 @@ export default function AdminPage() {
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                     {aiResult.map((soal, idx) => (
-                      <div key={idx} className="rounded-xl border border-slate-200 p-3 bg-slate-50">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <span className="w-5 h-5 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-[10px] font-extrabold">{idx + 1}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${soal.tipe === 'pilihan_ganda' ? 'bg-blue-100 text-blue-800' : soal.tipe === 'esay' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {soal.tipe === 'pilihan_ganda' ? 'PG' : soal.tipe === 'esay' ? 'Esay' : 'Tabel'}
-                          </span>
-                          <span className="text-[10px] text-slate-400">Skor: {soal.skor_maksimal}</span>
+                      <div key={idx} className="rounded-xl border border-slate-200 p-3.5 bg-slate-50 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-[10px] font-extrabold">{idx + 1}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${soal.tipe === 'pilihan_ganda' ? 'bg-blue-100 text-blue-800 border-blue-200' : soal.tipe === 'esay' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'}`}>
+                              {soal.tipe === 'pilihan_ganda' ? 'Pilihan Ganda' : soal.tipe === 'esay' ? 'Esay' : 'Jadwal Syubbak (Tabel)'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-bold">Skor: {soal.skor_maksimal}</span>
                         </div>
-                        <p className="text-xs text-slate-700 leading-relaxed">{soal.pertanyaan}</p>
+
+                        <p className="text-xs font-bold text-slate-900 leading-relaxed">{soal.pertanyaan}</p>
+
+                        {/* Preview PG */}
                         {soal.tipe === 'pilihan_ganda' && soal.opsi_jawaban && (
-                          <div className="mt-2 space-y-1">
+                          <div className="mt-2 space-y-1 bg-white p-2.5 rounded-lg border border-slate-200">
                             {soal.opsi_jawaban.map(o => (
-                              <div key={o.label} className={`flex items-center gap-1.5 text-[11px] ${o.benar ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-                                <span className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[10px] ${o.benar ? 'bg-emerald-600 text-white' : 'bg-slate-200'}`}>{o.label}</span>
-                                {o.teks}
-                                {o.benar && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                              <div key={o.label} className={`flex items-center justify-between text-[11px] p-1 rounded ${o.benar ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-600'}`}>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[10px] ${o.benar ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>{o.label}</span>
+                                  <span>{o.teks}</span>
+                                </div>
+                                {o.benar && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
                               </div>
                             ))}
                           </div>
+                        )}
+
+                        {/* Preview Esay */}
+                        {soal.tipe === 'esay' && soal.jawaban_benar && (
+                          <div className="mt-2 p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-200 text-xs space-y-1">
+                            <span className="font-extrabold text-[10px] text-emerald-900 uppercase tracking-wider block">Kunci Jawaban Model:</span>
+                            <p className="text-[11px] text-slate-700 leading-relaxed">{soal.jawaban_benar}</p>
+                          </div>
+                        )}
+
+                        {/* Preview Tabel Syubbak */}
+                        {soal.tipe === 'isi_tabel' && soal.data_isi_tabel?.syubbak && (
+                          <div className="mt-2 p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-200 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold text-[10px] text-emerald-900 uppercase tracking-wider">Kunci Jadwal Syubbak:</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-900">
+                                Asal: {soal.data_isi_tabel.syubbak.asal_masalah_pokok} {soal.data_isi_tabel.syubbak.asal_masalah_akhir ? `➔ ${soal.data_isi_tabel.syubbak.asal_masalah_akhir}` : ''}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-[10.5px]">
+                              {soal.data_isi_tabel.syubbak.baris.map(b => (
+                                <div key={b.kode} className="flex items-center justify-between p-1 bg-white rounded border border-emerald-100">
+                                  <span className="font-bold text-slate-800">{b.nama_id}</span>
+                                  <span className="font-mono font-extrabold text-emerald-800">{b.porsi_benar} ({b.saham_benar})</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {soal.petunjuk && (
+                          <p className="text-[10px] text-slate-500 italic mt-1">
+                            <strong>Petunjuk:</strong> {soal.petunjuk}
+                          </p>
                         )}
                       </div>
                     ))}
