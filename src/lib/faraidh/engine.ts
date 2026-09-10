@@ -556,7 +556,7 @@ export class FaraidhEngine {
     // Simpan saham asal sebelum Tashih
     for (const [, aw] of aktifMap) {
       if (aw.aktif && aw.saham_total !== undefined) {
-        aw.saham_asal = aw.saham_total
+        aw.saham_asal = Math.round(aw.saham_total * 100) / 100
       }
     }
 
@@ -877,7 +877,7 @@ export class FaraidhEngine {
         pecahan: aw.pecahan_aktif,
         pecahan_arab: aw.pecahan_aktif ? (pecahanArabMap[aw.pecahan_aktif] || aw.pecahan_aktif) : '—',
         alasan_syarat: generateAlasanSyarat(aw, kodeAktif()),
-        saham_asal: aw.saham_asal || (aw.saham_total ? Math.round(aw.saham_total / juz_sahm) : 0),
+        saham_asal: aw.saham_asal !== undefined ? Math.round(aw.saham_asal * 100) / 100 : (aw.saham_total ? Math.round((aw.saham_total / juz_sahm) * 100) / 100 : 0),
         mahfudz: aw.mahfudz,
         saham_tashih: Math.round(saham_total),
         saham_per_orang: Math.round(saham_per_orang * 100) / 100,

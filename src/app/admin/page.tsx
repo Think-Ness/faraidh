@@ -70,10 +70,22 @@ type AdminTab =
   | 'audit_trail'
   | 'test_engine'
 
+// ─── Format Number with Max 2 Decimal Places ───────────────────────────
+function formatCleanNumber(num: number | string, maxDecimals: number = 2): string {
+  if (typeof num === 'string') {
+    const parsed = parseFloat(num)
+    if (isNaN(parsed)) return num
+    num = parsed
+  }
+  if (Number.isInteger(num)) return num.toString()
+  return Number(num.toFixed(maxDecimals)).toString()
+}
+
 // ─── Convert Digits to Arabic-Indic Numbers (١ ٢ ٣) ────────────────────
 function toArabicDigits(num: number | string): string {
+  const cleanStr = formatCleanNumber(num, 2)
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
-  return String(num).replace(/[0-9]/g, (w) => arabicDigits[+w])
+  return cleanStr.replace(/[0-9]/g, (w) => arabicDigits[+w]).replace(/\./g, '٫')
 }
 
 // ─── Format Authentic Classical Arabic Names (بنت, بنتان, بنات, etc.) ───
@@ -1259,8 +1271,11 @@ export default function AdminPage() {
                               const arabName = formatTextbookArabicName(h.kode, h.jumlah_orang, h.nama_arab)
                               const porsiArab = formatArabicFraction(h.pecahan)
                               const mahfudzVal = mahfudzMap.get(h.kode)
-                              const sahamAsalDisplay = useArabicNumerals ? toArabicDigits(h.saham_asal || h.saham_total_kelompok || 0) : (h.saham_asal || h.saham_total_kelompok || 0)
-                              const sahamTashihDisplay = useArabicNumerals ? toArabicDigits(h.saham_total_kelompok || 0) : (h.saham_total_kelompok || 0)
+                              const sahamAsalRaw = h.saham_asal !== undefined ? h.saham_asal : (h.saham_total_kelompok || 0)
+                              const sahamAsalFormatted = formatCleanNumber(sahamAsalRaw, 2)
+                              const sahamTashihFormatted = formatCleanNumber(h.saham_total_kelompok || 0, 2)
+                              const sahamAsalDisplay = useArabicNumerals ? toArabicDigits(sahamAsalFormatted) : sahamAsalFormatted
+                              const sahamTashihDisplay = useArabicNumerals ? toArabicDigits(sahamTashihFormatted) : sahamTashihFormatted
                               const mahfudzDisplay = mahfudzVal ? (useArabicNumerals ? toArabicDigits(mahfudzVal) : mahfudzVal) : '-'
 
                               return (
@@ -1302,7 +1317,7 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* 2. TABEL 1: PEMBAGIAN SAHAM & KAIDAH FIKIH (INTEGRATED MAHBUB INCLUDED) */}
+                    {/* 2. TABEL 1: PEMBAGIAN SAHAM, KAIDAH FIKIH & HIJAB */}
                     <div className="card overflow-hidden border border-slate-200 p-0">
                       <div className="bg-slate-900 text-white p-3 flex items-center justify-between">
                         <h4 className="font-extrabold text-xs uppercase tracking-wide flex items-center gap-1.5">
@@ -1320,15 +1335,22 @@ export default function AdminPage() {
                             <tr>
                               <th className="py-2 px-3">Ahli Waris</th>
                               <th className="py-2 px-2 text-center">Jiwa</th>
-                              <th className="py-2 px-2 text-center">Porsi</th>
+                              <th className="py-2 px-2 text-center">Porsi Syar'i</th>
                               <th className="py-2 px-3">Syarat & Kaidah Fikih</th>
-                              <th className="py-2 px-3 text-center">Rincian Saham</th>
+                              <th className="py-2 px-2 text-center bg-slate-200/60">Saham Asal</th>
+                              <th className="py-2 px-2 text-center bg-blue-50 text-blue-900">Tashih</th>
+                              <th className="py-2 px-2 text-center bg-emerald-50 text-emerald-900">Saham Akhir</th>
                               <th className="py-2 px-3 text-right">Porsi (%)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {allListInResult.map((h, idx) => {
                               const isMahjub = ['gugur_halangan', 'gugur_hijab'].includes(h.status)
+                              const sahamAsalClean = h.saham_asal !== undefined ? formatCleanNumber(h.saham_asal, 2) : (h.saham_total_kelompok ? formatCleanNumber(h.saham_total_kelompok, 2) : '0')
+                              const sahamAkhirClean = formatCleanNumber(h.saham_total_kelompok || 0, 2)
+                              const porsiPct = testResult.asal_masalah_tashih > 0 && h.saham_total_kelompok
+                                ? ((h.saham_total_kelompok / testResult.asal_masalah_tashih) * 100).toFixed(2)
+                                : '0.00'
 
                               return (
                                 <tr key={idx} className={`transition-colors ${isMahjub ? 'bg-rose-50/60' : 'hover:bg-slate-50'}`}>
@@ -1347,12 +1369,12 @@ export default function AdminPage() {
                                     {h.jumlah_orang}
                                   </td>
 
-                                  {/* Porsi */}
-                                  <td className="py-2 px-2 text-center">
+                                  {/* Porsi Syar'i */}
+                                  <td className="py-2 px-2 text-center whitespace-nowrap">
                                     {isMahjub ? (
                                       <span className="badge-red text-[10px] py-0">Mahjub (0)</span>
                                     ) : (
-                                      <span className="badge-emerald text-[10px] py-0">{h.pecahan || 'Ashabah'}</span>
+                                      <span className="badge-emerald text-[10px] py-0">{h.pecahan_arab || h.pecahan || 'عصبة (ع)'}</span>
                                     )}
                                   </td>
 
@@ -1369,23 +1391,24 @@ export default function AdminPage() {
                                     )}
                                   </td>
 
-                                  {/* Saham */}
-                                  <td className="py-2 px-3 text-center">
-                                    {isMahjub ? (
-                                      <span className="font-mono text-slate-400 font-bold">0</span>
-                                    ) : (
+                                  {/* Saham Asal (Pokok) */}
+                                  <td className="py-2 px-2 text-center font-mono font-bold text-slate-700 bg-slate-50/50">
+                                    {isMahjub ? '0' : sahamAsalClean}
+                                  </td>
+
+                                  {/* Tashih (Pengali) */}
+                                  <td className="py-2 px-2 text-center font-mono text-[11px] text-blue-900 bg-blue-50/40">
+                                    {isMahjub ? '—' : (testResult.juz_sahm > 1 ? `× ${testResult.juz_sahm}` : '—')}
+                                  </td>
+
+                                  {/* Saham Akhir */}
+                                  <td className="py-2 px-2 text-center font-mono font-extrabold text-emerald-950 bg-emerald-50/50 text-sm">
+                                    {isMahjub ? '0' : (
                                       <>
-                                        <div className="font-extrabold text-slate-900 font-mono text-sm">
-                                          {h.saham_total_kelompok}
-                                        </div>
-                                        {testResult.juz_sahm > 1 && h.saham_asal !== undefined && (
-                                          <div className="text-[10px] font-mono text-blue-800 bg-blue-50 px-1 rounded inline-block">
-                                            {Number.isInteger(h.saham_asal) ? `${h.saham_asal} × ${testResult.juz_sahm}` : `(Tashih × ${testResult.juz_sahm})`}
-                                          </div>
-                                        )}
+                                        <div>{sahamAkhirClean}</div>
                                         {h.jumlah_orang > 1 && (
-                                          <div className="text-[10px] text-slate-500 font-mono">
-                                            {h.saham_per_orang}/org
+                                          <div className="text-[10px] font-normal text-emerald-800">
+                                            ({formatCleanNumber(h.saham_per_orang || 0, 2)}/org)
                                           </div>
                                         )}
                                       </>
@@ -1394,11 +1417,7 @@ export default function AdminPage() {
 
                                   {/* Porsi (%) */}
                                   <td className="py-2 px-3 text-right font-mono font-bold text-slate-700">
-                                    {isMahjub
-                                      ? '0%'
-                                      : testResult.total_harta_bersih > 0 && h.nominal_total_kelompok
-                                      ? `${((h.nominal_total_kelompok / testResult.total_harta_bersih) * 100).toFixed(1)}%`
-                                      : '-'}
+                                    {isMahjub ? '0.00%' : `${porsiPct}%`}
                                   </td>
                                 </tr>
                               )
