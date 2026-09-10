@@ -1378,7 +1378,7 @@ export default function AdminPage() {
                                         </div>
                                         {testResult.juz_sahm > 1 && h.saham_asal !== undefined && (
                                           <div className="text-[10px] font-mono text-blue-800 bg-blue-50 px-1 rounded inline-block">
-                                            {h.saham_asal} × {testResult.juz_sahm}
+                                            {Number.isInteger(h.saham_asal) ? `${h.saham_asal} × ${testResult.juz_sahm}` : `(Tashih × ${testResult.juz_sahm})`}
                                           </div>
                                         )}
                                         {h.jumlah_orang > 1 && (
