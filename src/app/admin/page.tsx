@@ -125,14 +125,16 @@ function formatTextbookArabicName(kode: string, count: number, defaultArab: stri
 // ─── Format Porsi into Arabic Fraction (٢/٣, ١/٦, etc.) ────────────────
 function formatArabicFraction(pecahan?: string): string {
   if (!pecahan) return 'ع'
-  if (pecahan === 'sisa' || pecahan === 'ashabah') return 'ع'
+  if (pecahan === 'sisa' || pecahan === 'ashabah' || pecahan === 'sisa_2:1' || pecahan.toLowerCase().includes('sisa') || pecahan.toLowerCase().includes('ashabah')) {
+    return 'ع'
+  }
   if (pecahan === '1/2') return '١/٢'
   if (pecahan === '1/4') return '١/٤'
   if (pecahan === '1/8') return '١/٨'
   if (pecahan === '2/3') return '٢/٣'
   if (pecahan === '1/3') return '١/٣'
   if (pecahan === '1/6') return '١/٦'
-  if (pecahan === '1/6+sisa') return '١/٦+ع'
+  if (pecahan === '1/6+sisa') return '١/٦ + ع'
   if (pecahan === '1/3_sisa') return '١/٣ الباقي'
   return toArabicDigits(pecahan)
 }

@@ -761,16 +761,16 @@ export class FaraidhEngine {
     const nilai_satu_saham = asal_masalah_tashih > 0 ? harta_bersih / asal_masalah_tashih : 0
 
     const pecahanArabMap: Record<string, string> = {
-      '1/2': 'النصف',
-      '1/4': 'الربع',
-      '1/8': 'الثمن',
-      '2/3': 'الثلثان',
-      '1/3': 'الثلث',
-      '1/6': 'السدس',
-      'sisa': 'عصبة (الباقي)',
-      'sisa_2:1': 'عصبة بالغير (٢:١)',
-      '1/6+sisa': 'السدس + الباقي',
-      '1/3_gabungan': 'الثلث (مشترك)',
+      '1/2': 'النصف (١/٢)',
+      '1/4': 'الربع (١/٤)',
+      '1/8': 'الثمن (١/٨)',
+      '2/3': 'الثلثان (٢/٣)',
+      '1/3': 'الثلث (١/٣)',
+      '1/6': 'السدس (١/٦)',
+      'sisa': 'عصبة (ع)',
+      'sisa_2:1': 'عصبة بالغير (ع)',
+      '1/6+sisa': 'السدس + عصبة (١/٦ + ع)',
+      '1/3_gabungan': 'الثلث مشترك (١/٣)',
     }
 
     const generateAlasanSyarat = (aw: AhliWarisAktif, listKode: string[]): string => {
