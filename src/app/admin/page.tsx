@@ -45,6 +45,7 @@ import {
   HelpCircle,
   Calendar,
   CheckCheck,
+  FileCheck,
 } from 'lucide-react'
 import { getAdminData, testAdminCalculation } from './actions'
 import type {
@@ -69,7 +70,74 @@ type AdminTab =
   | 'audit_trail'
   | 'test_engine'
 
-// ─── 4 Family Clusters for Easy Selection ─────────────────────────────
+// ─── Convert Digits to Arabic-Indic Numbers (١ ٢ ٣) ────────────────────
+function toArabicDigits(num: number | string): string {
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
+  return String(num).replace(/[0-9]/g, (w) => arabicDigits[+w])
+}
+
+// ─── Format Authentic Classical Arabic Names (بنت, بنتان, بنات, etc.) ───
+function formatTextbookArabicName(kode: string, count: number, defaultArab: string): string {
+  if (count === 1) return defaultArab
+  if (kode === 'anak_pr') {
+    if (count === 2) return 'بنتان'
+    return `${toArabicDigits(count)} بنات`
+  }
+  if (kode === 'anak_lk') {
+    if (count === 2) return 'ابنان'
+    return `${toArabicDigits(count)} أبناء`
+  }
+  if (kode === 'cucu_pr') {
+    if (count === 2) return 'بنتا ابن'
+    return `${toArabicDigits(count)} بنات ابن`
+  }
+  if (kode === 'cucu_lk') {
+    if (count === 2) return 'ابنا ابن'
+    return `${toArabicDigits(count)} أبناء ابن`
+  }
+  if (kode === 'istri') {
+    if (count === 2) return 'زوجتان'
+    return `${toArabicDigits(count)} زوجات`
+  }
+  if (kode === 'saudari_kandung') {
+    if (count === 2) return 'أختان شقيقتان'
+    return `${toArabicDigits(count)} أخوات شقائق`
+  }
+  if (kode === 'saudara_lk_kandung') {
+    if (count === 2) return 'أخوان شقيقان'
+    return `${toArabicDigits(count)} إخوة أشقاء`
+  }
+  if (kode === 'saudari_seayah') {
+    if (count === 2) return 'أختان لأب'
+    return `${toArabicDigits(count)} أخوات لأب`
+  }
+  if (kode === 'saudara_lk_seayah') {
+    if (count === 2) return 'أخوان لأب'
+    return `${toArabicDigits(count)} إخوة لأب`
+  }
+  if (kode === 'saudara_lk_seibu' || kode === 'saudari_seibu') {
+    if (count === 2) return 'أخوان لأم'
+    return `${toArabicDigits(count)} إخوة لأم`
+  }
+  return `${toArabicDigits(count)} ${defaultArab}`
+}
+
+// ─── Format Porsi into Arabic Fraction (٢/٣, ١/٦, etc.) ────────────────
+function formatArabicFraction(pecahan?: string): string {
+  if (!pecahan) return 'ع'
+  if (pecahan === 'sisa' || pecahan === 'ashabah') return 'ع'
+  if (pecahan === '1/2') return '١/٢'
+  if (pecahan === '1/4') return '١/٤'
+  if (pecahan === '1/8') return '١/٨'
+  if (pecahan === '2/3') return '٢/٣'
+  if (pecahan === '1/3') return '١/٣'
+  if (pecahan === '1/6') return '١/٦'
+  if (pecahan === '1/6+sisa') return '١/٦+ع'
+  if (pecahan === '1/3_sisa') return '١/٣ الباقي'
+  return toArabicDigits(pecahan)
+}
+
+// ─── 4 Family Clusters with Compact Mobile Labels ───────────────────────
 const CLUSTERS = [
   {
     id: 'pasangan',
@@ -81,7 +149,7 @@ const CLUSTERS = [
   },
   {
     id: 'furu',
-    title: 'Anak & Cucu (Al-Furu\')',
+    title: 'Anak / Cucu',
     titleArab: 'الفروع',
     color: 'border-sky-200 bg-sky-50/40 text-sky-900',
     icon: Layers,
@@ -89,7 +157,7 @@ const CLUSTERS = [
   },
   {
     id: 'usul',
-    title: 'Orang Tua & Leluhur (Al-Ushul)',
+    title: 'Orang Tua',
     titleArab: 'الأصول',
     color: 'border-purple-200 bg-purple-50/40 text-purple-900',
     icon: GraduationCap,
@@ -97,7 +165,7 @@ const CLUSTERS = [
   },
   {
     id: 'hawasyi',
-    title: 'Saudara & Kerabat (Al-Hawasyi)',
+    title: 'Saudara & Paman',
     titleArab: 'الحواشي',
     color: 'border-amber-200 bg-amber-50/40 text-amber-900',
     icon: Sparkles,
@@ -119,6 +187,35 @@ const CLUSTERS = [
     ],
   },
 ]
+
+// ─── Concise Mobile Heir Display Names ──────────────────────────────────
+const CONCISE_NAMES: Record<string, string> = {
+  suami: 'Suami',
+  istri: 'Istri',
+  anak_lk: 'Anak Laki-laki',
+  anak_pr: 'Anak Perempuan',
+  cucu_lk: 'Cucu Lk (Anak Lk)',
+  cucu_pr: 'Cucu Pr (Anak Lk)',
+  ayah: 'Ayah',
+  ibu: 'Ibu',
+  kakek: 'Kakek (Jalur Ayah)',
+  nenek_ibu: 'Nenek (Jalur Ibu)',
+  nenek_ayah: 'Nenek (Jalur Ayah)',
+  saudara_lk_kandung: 'Saudara Sekandung',
+  saudari_kandung: 'Saudari Sekandung',
+  saudara_lk_seayah: 'Saudara Seayah',
+  saudari_seayah: 'Saudari Seayah',
+  saudara_lk_seibu: 'Saudara Seibu',
+  saudari_seibu: 'Saudari Seibu',
+  keponakan_lk_kandung: 'Keponakan Sekandung',
+  keponakan_lk_seayah: 'Keponakan Seayah',
+  paman_kandung: 'Paman Sekandung',
+  paman_seayah: 'Paman Seayah',
+  sepupu_lk_paman_kandung: 'Sepupu Sekandung',
+  sepupu_lk_paman_seayah: 'Sepupu Seayah',
+  mutiq: 'Pembebas Budak (Lk)',
+  mutiqah: 'Pembebas Budak (Pr)',
+}
 
 // ─── Preset Sandbox Scenarios ──────────────────────────────────────────
 const ADMIN_SANDBOX_PRESETS = [
@@ -241,10 +338,10 @@ export default function AdminPage() {
   const [testSelectedWaris, setTestSelectedWaris] = useState<{ kode: string; count: number }[]>([])
   const [testResult, setTestResult] = useState<HasilKalkulasi | null>(null)
   const [testLoading, setTestLoading] = useState(false)
+  const [useArabicNumerals, setUseArabicNumerals] = useState(true)
   
-  // Mobile cluster active tab: 'all' | 'pasangan' | 'furu' | 'usul' | 'hawasyi'
+  // Mobile cluster active tab
   const [selectedClusterTab, setSelectedClusterTab] = useState<string>('pasangan')
-  const [sandboxSearch, setSandboxSearch] = useState('')
 
   const loadData = async () => {
     setLoading(true)
@@ -268,7 +365,7 @@ export default function AdminPage() {
     setTimeout(() => setCopiedText(null), 2000)
   }
 
-  // Update waris count with smart rules (e.g. Suami & Istri mutual exclusion)
+  // Update waris count with smart mutual exclusion (Suami / Istri)
   const updateWarisCount = (kode: string, delta: number) => {
     setTestSelectedWaris(prev => {
       const existing = prev.find(p => p.kode === kode)
@@ -277,7 +374,6 @@ export default function AdminPage() {
 
       let updated = prev.filter(p => p.kode !== kode)
       if (nextCount > 0) {
-        // Enforce single spouse gender
         if (kode === 'suami') {
           updated = updated.filter(p => p.kode !== 'istri')
         } else if (kode === 'istri') {
@@ -399,19 +495,29 @@ export default function AdminPage() {
   // Group result items for Sandbox Output
   const berhakList = testResult?.hasil.filter(h => !['gugur_halangan', 'gugur_hijab'].includes(h.status)) || []
   const gugurList = testResult?.hasil.filter(h => ['gugur_halangan', 'gugur_hijab'].includes(h.status)) || []
+  const allListInResult = testResult?.hasil || []
   const totalJiwaPilihan = testSelectedWaris.reduce((sum, w) => sum + w.count, 0)
+
+  // Mahfudzat map for classical preview
+  const mahfudzMap = useMemo(() => {
+    const map = new Map<string, number>()
+    if (testResult?.mahfudzat_detail) {
+      testResult.mahfudzat_detail.forEach(md => map.set(md.kode, md.mahfudz))
+    }
+    return map
+  }, [testResult])
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 pb-20 lg:pb-8">
       
       {/* ─── ADMIN TOPBAR ─────────────────────────────────────── */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
           
           {/* Brand & Badge */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
-              <Sliders className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
+              <Sliders className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -420,7 +526,7 @@ export default function AdminPage() {
                 </span>
                 <span className="badge-slate text-[10px] font-bold py-0.5">ADMIN POV</span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium">
                 Pusat Tata Kelola Kaidah Fikih, Kaidah Hijab & Bank Soal KMI Gontor
               </p>
             </div>
@@ -444,7 +550,7 @@ export default function AdminPage() {
               onClick={loadData}
               disabled={loading}
               title="Refresh Data Kaidah"
-              className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -462,8 +568,8 @@ export default function AdminPage() {
       </header>
 
       {/* ─── SUB-HEADER NAVIGATION TABS ───────────────────────── */}
-      <div className="bg-white border-b border-slate-200 sticky top-[57px] z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto py-2 scrollbar-none">
+      <div className="bg-white border-b border-slate-200 sticky top-[53px] sm:top-[57px] z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto py-1.5 sm:py-2 scrollbar-none">
           
           <button
             onClick={() => setActiveTab('overview')}
@@ -577,7 +683,7 @@ export default function AdminPage() {
       </div>
 
       {/* ─── MAIN CONTENT ─────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-4 py-5 flex-1 w-full space-y-5">
+      <main className="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex-1 w-full space-y-5">
 
         {/* ═══════════════════════════════════════════════════════ */}
         {/* TAB 1: OVERVIEW & DASHBOARD METRICS                     */}
@@ -586,7 +692,7 @@ export default function AdminPage() {
           <div className="space-y-5 animate-fadeIn">
             
             {/* Top Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
               <div className="card p-3.5 text-center border-l-4 border-l-emerald-600">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">
                   Ahli Waris
@@ -637,7 +743,7 @@ export default function AdminPage() {
             </div>
 
             {/* Architecture Flow Banner */}
-            <div className="card p-5 bg-white border border-slate-200 space-y-4">
+            <div className="card p-4 sm:p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
@@ -657,7 +763,7 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
                   { step: '1', title: 'Tirkah Bersih', desc: 'Hak mayit dipotong.' },
                   { step: '2', title: 'Mawani\'ul Irts', desc: 'Filter pembunuh/budak.' },
@@ -744,19 +850,19 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* TAB 2: SANDBOX ENGINE (MOBILE-FIRST & EASY-TO-USE)      */}
+        {/* TAB 2: SANDBOX ENGINE (MOBILE-COMPACT & INTEGRATED)     */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === 'test_engine' && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-4 sm:space-y-5 animate-fadeIn">
             
             {/* Top Engine Control Bar */}
-            <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="card p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
                   <Play className="w-4 h-4 fill-emerald-700 text-emerald-700" />
                   <span>Sandbox Engine Faraidh (مختبر علم الفرائض)</span>
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-[11px] sm:text-xs text-slate-500">
                   Uji coba kombinasi 25 ahli waris secara instan dengan rincian fikih mendalam
                 </p>
               </div>
@@ -799,13 +905,13 @@ export default function AdminPage() {
             </div>
 
             {/* Main Work Area: 2 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
               
               {/* ─── LEFT: COMPACT HEIR SELECTOR (5 COLS) ──────────── */}
-              <div className="lg:col-span-5 space-y-4">
+              <div className="lg:col-span-5 space-y-3.5">
                 
                 {/* Nominal Tirkah Input */}
-                <div className="card p-4 space-y-2.5">
+                <div className="card p-3.5 space-y-2">
                   <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                     <span>Tirkah Bersih / التركة (Rp)</span>
                     <span className="text-emerald-800 font-mono font-extrabold text-xs">
@@ -832,7 +938,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Active Heirs Summary Chips */}
-                <div className="card p-3.5 space-y-2">
+                <div className="card p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700">
                       Ahli Waris Terpilih ({testSelectedWaris.length} Golongan / {totalJiwaPilihan} Jiwa)
@@ -853,7 +959,7 @@ export default function AdminPage() {
                             key={sw.kode}
                             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs"
                           >
-                            <span className="font-extrabold text-slate-900">{waris?.nama_id}</span>
+                            <span className="font-extrabold text-slate-900">{CONCISE_NAMES[sw.kode] || waris?.nama_id}</span>
                             <span className="px-1.5 bg-emerald-700 text-white rounded font-extrabold text-[10px]">
                               {sw.count}
                             </span>
@@ -875,7 +981,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Mobile-Friendly Sub-Cluster Tabs */}
-                <div className="card p-3.5 space-y-3">
+                <div className="card p-3 sm:p-3.5 space-y-2.5">
                   <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-slate-100 scrollbar-none">
                     {CLUSTERS.map(cluster => {
                       const countInCluster = testSelectedWaris.filter(w => cluster.codes.includes(w.kode)).reduce((sum, w) => sum + w.count, 0)
@@ -907,6 +1013,7 @@ export default function AdminPage() {
                       if (!w) return null
                       const active = testSelectedWaris.find(s => s.kode === w.kode)
                       const count = active ? active.count : 0
+                      const displayName = CONCISE_NAMES[w.kode] || w.nama_id
 
                       return (
                         <div
@@ -917,11 +1024,11 @@ export default function AdminPage() {
                               : 'border-slate-200 bg-white hover:border-slate-300'
                           }`}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-extrabold text-slate-900 truncate">
-                              {w.nama_id}
+                          <div className="flex-1 min-w-0 pr-1">
+                            <div className="text-xs font-bold text-slate-900 leading-tight">
+                              {displayName}
                             </div>
-                            <div className="text-arabic text-xs font-bold text-emerald-800">
+                            <div className="text-arabic text-xs font-bold text-emerald-800 mt-0.5">
                               {w.nama_arab}
                             </div>
                           </div>
@@ -959,12 +1066,12 @@ export default function AdminPage() {
                   <div className="space-y-4 animate-fadeIn">
                     
                     {/* 1. Status & 4 Pillars Card */}
-                    <div className="card p-4 sm:p-5 space-y-4">
+                    <div className="card p-4 sm:p-5 space-y-3.5">
                       
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
                         <div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                            Status Penyelesaian
+                            Status Penyelesaian Faraidh
                           </span>
                           <h4 className="font-extrabold text-sm sm:text-base text-slate-900">
                             {testResult.status_penyelesaian === 'adilah' && <span>Kasus Normal ('Adilah / مسألة عادلة)</span>}
@@ -982,7 +1089,7 @@ export default function AdminPage() {
 
                       {/* 4 Pillars Grid */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
                           <span className="text-[10px] text-slate-500 font-bold block">Asal Masalah Pokok</span>
                           <span className="text-arabic text-xs text-slate-400 font-bold block">أصل المسألة</span>
                           <span className="text-base font-extrabold text-slate-900 mt-0.5 block">
@@ -990,7 +1097,7 @@ export default function AdminPage() {
                           </span>
                         </div>
 
-                        <div className={`p-2.5 rounded-xl border ${
+                        <div className={`p-2 rounded-xl border ${
                           testResult.asal_masalah_aul ? 'bg-rose-50 border-rose-200 text-rose-900' :
                           testResult.asal_masalah_radd ? 'bg-amber-50 border-amber-200 text-amber-900' :
                           'bg-slate-50 border-slate-200 text-slate-900'
@@ -1010,7 +1117,7 @@ export default function AdminPage() {
                           </span>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
                           <span className="text-[10px] text-slate-500 font-bold block">Juz'us Sahm</span>
                           <span className="text-arabic text-xs text-slate-400 font-bold block">جزء السهم</span>
                           <span className="text-base font-extrabold text-slate-900 mt-0.5 block">
@@ -1018,7 +1125,7 @@ export default function AdminPage() {
                           </span>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
                           <span className="text-[10px] text-slate-500 font-bold block">Asal Masalah Akhir</span>
                           <span className="text-arabic text-xs text-slate-400 font-bold block">المصحح النهائي</span>
                           <span className="text-base font-extrabold text-emerald-800 mt-0.5 block">
@@ -1081,15 +1188,127 @@ export default function AdminPage() {
 
                     </div>
 
-                    {/* 2. TABEL 1: PEMBAGIAN SAHAM */}
-                    <div className="card overflow-hidden border border-slate-200">
+                    {/* ─── CLASSICAL TEXTBOOK TABLE PREVIEW (جدول الشباك) ─── */}
+                    <div className="card p-4 sm:p-5 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white space-y-3.5 shadow-md">
+                      <div className="flex items-center justify-between border-b border-emerald-800/80 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 text-emerald-300" />
+                          <h4 className="font-extrabold text-xs sm:text-sm tracking-wide">
+                            Preview Format Buku / Kitab Faraidh KMI (جدول الشباك)
+                          </h4>
+                        </div>
+                        <button
+                          onClick={() => setUseArabicNumerals(!useArabicNumerals)}
+                          className="px-2 py-0.5 rounded bg-emerald-800/60 hover:bg-emerald-700 text-emerald-200 text-[10px] font-semibold border border-emerald-700 transition-colors"
+                        >
+                          {useArabicNumerals ? 'Angka: ١ ٢ ٣ (Arab)' : 'Angka: 1 2 3 (Latin)'}
+                        </button>
+                      </div>
+
+                      {/* Classical Grid Container (RTL) */}
+                      <div className="overflow-x-auto pb-1" dir="rtl">
+                        <div className="inline-block min-w-full bg-white text-slate-900 rounded-lg border-2 border-emerald-900 overflow-hidden font-arabic shadow-sm">
+                          
+                          {/* Table Header Row (With Tashih / 'Aul Banner) */}
+                          <div className="grid grid-cols-12 bg-emerald-50 border-b-2 border-emerald-900 text-center font-bold text-sm">
+                            
+                            {/* Mahfudzat Header Column (If applicable) */}
+                            {testResult.juz_sahm > 1 && testResult.mahfudzat_detail && testResult.mahfudzat_detail.length > 0 && (
+                              <div className="col-span-2 border-l-2 border-emerald-900 p-2 text-xs text-emerald-900">
+                                المحفوظات
+                              </div>
+                            )}
+
+                            {/* Heirs & Share Headers */}
+                            <div className={`${testResult.juz_sahm > 1 ? 'col-span-5' : 'col-span-6'} border-l-2 border-emerald-900 p-2 text-emerald-900`}>
+                              {testResult.juz_sahm > 1 ? (
+                                <div className="text-xs sm:text-sm">
+                                  جزء السهم: {useArabicNumerals ? toArabicDigits(testResult.juz_sahm) : testResult.juz_sahm} ×
+                                </div>
+                              ) : (
+                                <div className="text-xs sm:text-sm">الورثة والسهام</div>
+                              )}
+                            </div>
+
+                            {/* Asal Masalah Header Box */}
+                            <div className={`${testResult.juz_sahm > 1 ? 'col-span-2' : 'col-span-3'} border-l-2 border-emerald-900 p-2 text-emerald-900 font-extrabold text-sm sm:text-base`}>
+                              {useArabicNumerals ? toArabicDigits(testResult.asal_masalah_pokok) : testResult.asal_masalah_pokok}
+                            </div>
+
+                            {/* Final Column: 'Aul / Tashih Header Box */}
+                            <div className={`${testResult.juz_sahm > 1 ? 'col-span-3' : 'col-span-3'} p-2 text-emerald-900 font-extrabold text-sm sm:text-base bg-emerald-100/50`}>
+                              {testResult.asal_masalah_aul ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  <span>{useArabicNumerals ? toArabicDigits(testResult.asal_masalah_aul) : testResult.asal_masalah_aul}</span>
+                                  <span className="text-[11px] text-emerald-700">عا</span>
+                                </div>
+                              ) : testResult.asal_masalah_tashih ? (
+                                <span>{useArabicNumerals ? toArabicDigits(testResult.asal_masalah_tashih) : testResult.asal_masalah_tashih}</span>
+                              ) : (
+                                <span>{useArabicNumerals ? toArabicDigits(testResult.asal_masalah) : testResult.asal_masalah}</span>
+                              )}
+                            </div>
+
+                          </div>
+
+                          {/* Rows: Each Heir in Classical Format */}
+                          <div className="divide-y-2 divide-emerald-900 text-center font-bold text-sm">
+                            {berhakList.map((h) => {
+                              const arabName = formatTextbookArabicName(h.kode, h.jumlah_orang, h.nama_arab)
+                              const porsiArab = formatArabicFraction(h.pecahan)
+                              const mahfudzVal = mahfudzMap.get(h.kode)
+                              const sahamAsalDisplay = useArabicNumerals ? toArabicDigits(h.saham_asal || h.saham_total_kelompok || 0) : (h.saham_asal || h.saham_total_kelompok || 0)
+                              const sahamTashihDisplay = useArabicNumerals ? toArabicDigits(h.saham_total_kelompok || 0) : (h.saham_total_kelompok || 0)
+                              const mahfudzDisplay = mahfudzVal ? (useArabicNumerals ? toArabicDigits(mahfudzVal) : mahfudzVal) : '-'
+
+                              return (
+                                <div key={h.kode} className="grid grid-cols-12 items-center hover:bg-slate-50">
+                                  
+                                  {/* Optional Mahfudz Value */}
+                                  {testResult.juz_sahm > 1 && testResult.mahfudzat_detail && testResult.mahfudzat_detail.length > 0 && (
+                                    <div className="col-span-2 border-l-2 border-emerald-900 p-2 font-mono text-emerald-800">
+                                      {mahfudzDisplay}
+                                    </div>
+                                  )}
+
+                                  {/* Right Column: Name + Porsi */}
+                                  <div className={`${testResult.juz_sahm > 1 ? 'col-span-5' : 'col-span-6'} border-l-2 border-emerald-900 p-2 flex items-center justify-between px-3`}>
+                                    <span className="text-right text-slate-900 font-extrabold text-sm sm:text-base">
+                                      {arabName}
+                                    </span>
+                                    <span className="text-emerald-800 font-mono text-xs sm:text-sm font-bold">
+                                      {porsiArab}
+                                    </span>
+                                  </div>
+
+                                  {/* Middle Column: Saham Asal */}
+                                  <div className={`${testResult.juz_sahm > 1 ? 'col-span-2' : 'col-span-3'} border-l-2 border-emerald-900 p-2 font-mono text-slate-800 text-sm sm:text-base`}>
+                                    {sahamAsalDisplay}
+                                  </div>
+
+                                  {/* Final Column: Saham Akhir / Tashih */}
+                                  <div className={`${testResult.juz_sahm > 1 ? 'col-span-3' : 'col-span-3'} p-2 font-mono text-emerald-900 font-extrabold text-sm sm:text-base bg-emerald-50/40`}>
+                                    {testResult.juz_sahm > 1 ? sahamTashihDisplay : sahamAsalDisplay}
+                                  </div>
+
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. TABEL 1: PEMBAGIAN SAHAM & KAIDAH FIKIH (INTEGRATED MAHBUB INCLUDED) */}
+                    <div className="card overflow-hidden border border-slate-200 p-0">
                       <div className="bg-slate-900 text-white p-3 flex items-center justify-between">
                         <h4 className="font-extrabold text-xs uppercase tracking-wide flex items-center gap-1.5">
                           <Scale className="w-3.5 h-3.5 text-emerald-400" />
-                          Tabel 1: Pembagian Saham & Kaidah Fikih
+                          Tabel 1: Pembagian Saham, Kaidah Fikih & Hijab
                         </h4>
                         <span className="text-arabic text-xs text-emerald-300 font-bold hidden sm:inline">
-                          جدول السهام وقواعد الفقه
+                          جدول السهام وقواعد الفقه والمحجوبين
                         </span>
                       </div>
 
@@ -1100,57 +1319,102 @@ export default function AdminPage() {
                               <th className="py-2 px-3">Ahli Waris</th>
                               <th className="py-2 px-2 text-center">Jiwa</th>
                               <th className="py-2 px-2 text-center">Porsi</th>
-                              <th className="py-2 px-3">Syarat Fikih</th>
+                              <th className="py-2 px-3">Syarat & Kaidah Fikih</th>
                               <th className="py-2 px-3 text-center">Rincian Saham</th>
                               <th className="py-2 px-3 text-right">Porsi (%)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {berhakList.map((h, idx) => (
-                              <tr key={idx} className="hover:bg-slate-50">
-                                <td className="py-2 px-3 font-extrabold text-slate-900">
-                                  <div>{h.nama_id}</div>
-                                  <div className="text-arabic text-xs font-bold text-emerald-800">{h.nama_arab}</div>
-                                </td>
-                                <td className="py-2 px-2 text-center font-bold text-slate-700">{h.jumlah_orang}</td>
-                                <td className="py-2 px-2 text-center">
-                                  <span className="badge-emerald text-[10px] py-0">{h.pecahan || 'Ashabah'}</span>
-                                </td>
-                                <td className="py-2 px-3 text-slate-600 text-[11px] max-w-xs">{h.alasan_syarat || h.keterangan || '-'}</td>
-                                <td className="py-2 px-3 text-center">
-                                  <div className="font-extrabold text-slate-900 font-mono text-sm">{h.saham_total_kelompok}</div>
-                                  {testResult.juz_sahm > 1 && h.saham_asal !== undefined && (
-                                    <div className="text-[10px] font-mono text-blue-800 bg-blue-50 px-1 rounded inline-block">
-                                      {h.saham_asal} × {testResult.juz_sahm}
+                            {allListInResult.map((h, idx) => {
+                              const isMahjub = ['gugur_halangan', 'gugur_hijab'].includes(h.status)
+
+                              return (
+                                <tr key={idx} className={`transition-colors ${isMahjub ? 'bg-rose-50/60' : 'hover:bg-slate-50'}`}>
+                                  {/* Ahli Waris */}
+                                  <td className="py-2 px-3">
+                                    <div className={`font-extrabold ${isMahjub ? 'line-through text-slate-700 decoration-rose-500' : 'text-slate-900'}`}>
+                                      {h.nama_id}
                                     </div>
-                                  )}
-                                  {h.jumlah_orang > 1 && (
-                                    <div className="text-[10px] text-slate-500 font-mono">
-                                      {h.saham_per_orang}/org
+                                    <div className={`text-arabic text-xs font-bold ${isMahjub ? 'text-rose-700' : 'text-emerald-800'}`}>
+                                      {h.nama_arab}
                                     </div>
-                                  )}
-                                </td>
-                                <td className="py-2 px-3 text-right font-mono font-bold text-slate-700">
-                                  {testResult.total_harta_bersih > 0 && h.nominal_total_kelompok
-                                    ? `${((h.nominal_total_kelompok / testResult.total_harta_bersih) * 100).toFixed(1)}%`
-                                    : '-'}
-                                </td>
-                              </tr>
-                            ))}
+                                  </td>
+
+                                  {/* Jiwa */}
+                                  <td className="py-2 px-2 text-center font-bold text-slate-700">
+                                    {h.jumlah_orang}
+                                  </td>
+
+                                  {/* Porsi */}
+                                  <td className="py-2 px-2 text-center">
+                                    {isMahjub ? (
+                                      <span className="badge-red text-[10px] py-0">Mahjub (0)</span>
+                                    ) : (
+                                      <span className="badge-emerald text-[10px] py-0">{h.pecahan || 'Ashabah'}</span>
+                                    )}
+                                  </td>
+
+                                  {/* Syarat / Alasan */}
+                                  <td className="py-2 px-3 text-xs max-w-xs">
+                                    {isMahjub ? (
+                                      <span className="font-bold text-rose-700">
+                                        {h.alasan_gugur || 'Terhalang (Hijab Hirman) oleh ahli waris yang lebih dekat'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-600 text-[11px]">
+                                        {h.alasan_syarat || h.keterangan || 'Memenuhi syarat syar\'i.'}
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Saham */}
+                                  <td className="py-2 px-3 text-center">
+                                    {isMahjub ? (
+                                      <span className="font-mono text-slate-400 font-bold">0</span>
+                                    ) : (
+                                      <>
+                                        <div className="font-extrabold text-slate-900 font-mono text-sm">
+                                          {h.saham_total_kelompok}
+                                        </div>
+                                        {testResult.juz_sahm > 1 && h.saham_asal !== undefined && (
+                                          <div className="text-[10px] font-mono text-blue-800 bg-blue-50 px-1 rounded inline-block">
+                                            {h.saham_asal} × {testResult.juz_sahm}
+                                          </div>
+                                        )}
+                                        {h.jumlah_orang > 1 && (
+                                          <div className="text-[10px] text-slate-500 font-mono">
+                                            {h.saham_per_orang}/org
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </td>
+
+                                  {/* Porsi (%) */}
+                                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-700">
+                                    {isMahjub
+                                      ? '0%'
+                                      : testResult.total_harta_bersih > 0 && h.nominal_total_kelompok
+                                      ? `${((h.nominal_total_kelompok / testResult.total_harta_bersih) * 100).toFixed(1)}%`
+                                      : '-'}
+                                  </td>
+                                </tr>
+                              )
+                            })}
                           </tbody>
                         </table>
                       </div>
                     </div>
 
-                    {/* 3. TABEL 2: PEMBAGIAN NOMINAL TIRKAH */}
-                    <div className="card overflow-hidden border border-slate-200">
+                    {/* 3. TABEL 2: PEMBAGIAN NOMINAL TIRKAH (HANYA PENERIMA / MUSTAHIQ) */}
+                    <div className="card overflow-hidden border border-slate-200 p-0">
                       <div className="bg-emerald-800 text-white p-3 flex items-center justify-between">
                         <h4 className="font-extrabold text-xs uppercase tracking-wide flex items-center gap-1.5">
                           <Coins className="w-3.5 h-3.5 text-emerald-200" />
                           Tabel 2: Pembagian Nominal Harta (Tirkah)
                         </h4>
                         <span className="text-arabic text-xs text-emerald-200 font-bold hidden sm:inline">
-                          جدول توزيع التركة
+                          جدول توزيع التركة النقدية
                         </span>
                       </div>
 
@@ -1158,10 +1422,10 @@ export default function AdminPage() {
                         <table className="w-full text-xs text-left">
                           <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
                             <tr>
-                              <th className="py-2 px-3">Ahli Waris</th>
+                              <th className="py-2 px-3">Ahli Waris (Mustahiq)</th>
                               <th className="py-2 px-2 text-center">Jiwa</th>
-                              <th className="py-2 px-3 text-right">Total Kelompok</th>
-                              <th className="py-2 px-3 text-right">Per Individu</th>
+                              <th className="py-2 px-3 text-right">Total Kelompok (Rp)</th>
+                              <th className="py-2 px-3 text-right">Per Individu (Rp)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
@@ -1191,31 +1455,13 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* 4. TABEL TERHIJAB / GUGUR */}
-                    {gugurList.length > 0 && (
-                      <div className="card p-3.5 border border-rose-200 bg-rose-50/40 space-y-2">
-                        <span className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
-                          <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-                          Ahli Waris Terhijab / Gugur ({gugurList.length} Orang)
-                        </span>
-                        <div className="space-y-1">
-                          {gugurList.map((g, idx) => (
-                            <div key={idx} className="text-xs text-slate-700 flex items-center justify-between bg-white p-2 rounded border border-rose-100">
-                              <span className="line-through font-bold text-slate-800">{g.nama_id} ({g.nama_arab})</span>
-                              <span className="text-[11px] text-rose-700 font-semibold">{g.alasan_gugur || 'Terhalang oleh ahli waris lebih dekat'}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                   </div>
                 ) : (
                   <div className="card p-10 text-center bg-white border border-slate-200 space-y-2.5">
                     <Scale className="w-8 h-8 text-emerald-700 mx-auto" />
                     <h4 className="font-extrabold text-sm text-slate-800">Mesin Sandbox Faraidh Siap</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Pilih ahli waris di kolom kiri atau klik salah satu preset cepat, lalu klik tombol <strong>"Jalankan Analisis"</strong> untuk melihat rincian porsi dan nominal.
+                      Pilih ahli waris di kolom kiri atau klik salah satu preset cepat, lalu klik tombol <strong>"Jalankan Analisis"</strong> untuk melihat rincian porsi, kaidah hijab, dan preview tabel buku faraidh.
                     </p>
                   </div>
                 )}
