@@ -1690,83 +1690,144 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* TAB 5: MATRIKS HIJAB (HIRMAN & NUQSHAN)                 */}
+        {/* TAB 5: MATRIKS HIJAB (HIRMAN & NUQSHAN)                */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === 'hijab' && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             
+            {/* Header Hijab Hirman */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
               <div>
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-rose-700" />
-                  Kaidah Hijab Hirman (33 Relasi Gugur Total)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Filter penghalang untuk melihat siapa saja yang digugurkan
-                </p>
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-rose-700" />
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                    Kaidah Hijab Hirman (33 Relasi Gugur Total)
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-arabic text-xs font-bold text-rose-800">
+                    حجب الحرمان (إسقاط الوارث بالكلية من الميراث)
+                  </span>
+                  <span className="text-[11px] text-slate-400">•</span>
+                  <p className="text-xs text-slate-500">
+                    Filter pihak penghalang (الحاجب) untuk melihat pihak yang digugurkan (المحجوب)
+                  </p>
+                </div>
               </div>
 
               <select
                 value={selectedPenghalang}
                 onChange={(e) => setSelectedPenghalang(e.target.value)}
-                className="px-3 py-1 rounded-lg border border-slate-200 text-xs bg-white font-bold text-slate-700 focus:outline-none"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white font-bold text-slate-700 focus:outline-none"
               >
-                <option value="ALL">Semua Penghalang (33 Relasi)</option>
-                <option value="anak_lk">Anak Laki-laki (13 terhalang)</option>
-                <option value="ayah">Ayah (7 terhalang)</option>
-                <option value="cucu_lk">Cucu Laki-laki (6 terhalang)</option>
-                <option value="saudara_lk_kandung">Saudara Sekandung (6 terhalang)</option>
-                <option value="ibu">Ibu (2 nenek terhalang)</option>
+                <option value="ALL">Semua Penghalang (كل الحواجب — 33 Relasi)</option>
+                <option value="anak_lk">Anak Laki-laki (الابن — 13 terhalang)</option>
+                <option value="ayah">Ayah (الأب — 7 terhalang)</option>
+                <option value="cucu_lk">Cucu Laki-laki (ابن الابن — 6 terhalang)</option>
+                <option value="saudara_lk_kandung">Saudara Sekandung (الأخ الشقيق — 6 terhalang)</option>
+                <option value="ibu">Ibu (الأم — 2 nenek terhalang)</option>
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {/* Grid Hijab Hirman Cards with Arabic Names */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredHijabHirman.map((h: HijabHirmanRule) => {
                 const penghalang = ahliWarisMap.get(h.penghalang_id)
                 const terhalang = ahliWarisMap.get(h.terhalang_id)
                 return (
-                  <div key={h.id} className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-2 shadow-sm">
+                  <div key={h.id} className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-sm hover:border-rose-200 transition-colors">
+                    {/* Penghalang */}
                     <div className="flex-1 min-w-0">
-                      <span className="text-[9px] font-bold text-rose-600 block uppercase">Penghalang</span>
-                      <span className="font-extrabold text-xs text-slate-900 truncate block">{penghalang?.nama_id}</span>
+                      <span className="text-[9px] font-extrabold text-emerald-800 tracking-wider block uppercase">
+                        Penghalang (الحاجب)
+                      </span>
+                      <span className="font-extrabold text-xs text-slate-900 truncate block mt-0.5">
+                        {penghalang?.nama_id}
+                      </span>
+                      <span className="text-arabic text-[11px] font-bold text-emerald-800 truncate block">
+                        {penghalang?.nama_arab}
+                      </span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-rose-500 shrink-0" />
+
+                    <div className="flex flex-col items-center justify-center shrink-0 px-1">
+                      <ChevronRight className="w-4 h-4 text-rose-500" />
+                      <span className="text-[9px] font-bold text-rose-600">يحجب</span>
+                    </div>
+
+                    {/* Terhalang */}
                     <div className="flex-1 text-right min-w-0">
-                      <span className="text-[9px] font-bold text-slate-400 block uppercase">Terhalang</span>
-                      <span className="font-bold text-xs text-slate-700 line-through decoration-rose-500 truncate block">{terhalang?.nama_id}</span>
+                      <span className="text-[9px] font-extrabold text-rose-700 tracking-wider block uppercase">
+                        Terhalang (المحجوب)
+                      </span>
+                      <span className="font-bold text-xs text-slate-700 line-through decoration-rose-500 truncate block mt-0.5">
+                        {terhalang?.nama_id}
+                      </span>
+                      <span className="text-arabic text-[11px] font-bold text-rose-700 line-through decoration-rose-500 truncate block">
+                        {terhalang?.nama_arab}
+                      </span>
                     </div>
                   </div>
                 )
               })}
             </div>
 
-            <div className="card p-4 space-y-3">
-              <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
-                <Scale className="w-4 h-4 text-amber-600" />
-                Hijab Nuqshan (12 Kasus Penurunan Porsi)
-              </h4>
+            {/* Section Hijab Nuqshan */}
+            <div className="card p-4 space-y-3 bg-white border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 text-amber-600" />
+                  Kaidah Hijab Nuqshan (12 Kasus Penurunan Porsi)
+                </h4>
+                <span className="text-arabic text-xs font-bold text-amber-800">
+                  حجب النقصان (انتقال الوarث من فرض أعلى إلى فرض أدنى)
+                </span>
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
-                      <th className="py-2 px-3">Penyebab (Far'u Warits)</th>
-                      <th className="py-2 px-3">Terdampak</th>
-                      <th className="py-2 px-3 text-center">Porsi Awal ➔ Porsi Baru</th>
-                      <th className="py-2 px-3">Keterangan</th>
+                      <th className="py-2.5 px-3">Penyebab (السبب / الفرع الوارث)</th>
+                      <th className="py-2.5 px-3">Terdampak (المحجوب نقصاناً)</th>
+                      <th className="py-2.5 px-3 text-center">Perubahan Porsi (التحول)</th>
+                      <th className="py-2.5 px-3">Keterangan Syar'i (البيان)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {(adminData?.hijabNuqshanRules || []).map((n: HijabNuqshanRule) => {
                       const p = ahliWarisMap.get(n.penyebab_id)
                       const t = ahliWarisMap.get(n.terdampak_id)
+                      const pecahanAwalArab = formatArabicFraction(n.pecahan_awal)
+                      const pecahanBaruArab = formatArabicFraction(n.pecahan_baru)
+
                       return (
                         <tr key={n.id} className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-slate-800">{p?.nama_id}</td>
-                          <td className="py-2 px-3 font-extrabold text-slate-900">{t?.nama_id}</td>
-                          <td className="py-2 px-3 text-center font-bold text-amber-800">
-                            {n.pecahan_awal} ➔ {n.pecahan_baru}
+                          {/* Penyebab */}
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-slate-800">{p?.nama_id}</div>
+                            <div className="text-arabic text-[11px] font-bold text-emerald-800">{p?.nama_arab}</div>
                           </td>
-                          <td className="py-2 px-3 text-slate-600">{n.keterangan}</td>
+
+                          {/* Terdampak */}
+                          <td className="py-2.5 px-3">
+                            <div className="font-extrabold text-slate-900">{t?.nama_id}</div>
+                            <div className="text-arabic text-[11px] font-bold text-amber-800">{t?.nama_arab}</div>
+                          </td>
+
+                          {/* Perubahan Porsi */}
+                          <td className="py-2.5 px-3 text-center">
+                            <div className="font-mono font-bold text-amber-800">
+                              {n.pecahan_awal} ➔ {n.pecahan_baru}
+                            </div>
+                            <div className="text-arabic text-xs font-bold text-slate-500 mt-0.5">
+                              {pecahanAwalArab} ➔ {pecahanBaruArab}
+                            </div>
+                          </td>
+
+                          {/* Keterangan */}
+                          <td className="py-2.5 px-3 text-slate-600 text-[11px] leading-relaxed max-w-sm">
+                            {n.keterangan}
+                          </td>
                         </tr>
                       )
                     })}
