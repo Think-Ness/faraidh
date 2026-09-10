@@ -221,11 +221,11 @@ export class FaraidhEngine {
         if (penghalang.kode === 'anak_pr' && terhalang.kode === 'cucu_pr') {
           if ((penghalangAktif.jumlah_orang || 1) < 2) continue
         }
-        // Pengecekan khusus: Saudari kandung menghalangi saudari seayah hanya jika sudah punya 2/3
+        // Pengecekan khusus: 2 atau lebih Saudari Kandung (2/3) menghalangi Saudari Seayah jika tanpa Saudara Lk Seayah
         if (penghalang.kode === 'saudari_kandung' && terhalang.kode === 'saudari_seayah') {
           const jmlSkandung = aktifMap.get('saudari_kandung')?.jumlah_orang || 0
           const adaSaudaraSeayah = aktifMap.get('saudara_lk_seayah')?.aktif
-          if (jmlSkandung < 3 || adaSaudaraSeayah) continue
+          if (jmlSkandung < 2 || adaSaudaraSeayah) continue
         }
 
         terhalangAktif.aktif = false
@@ -353,6 +353,55 @@ export class FaraidhEngine {
         if (kondisi && this.cekKondisi(kondisi, kodeAktif(), aktifMap)) {
           aw.jenis_ashabah = 'maal_ghair'
           aw.pecahan_aktif = 'sisa'
+        }
+      }
+
+      // Kaidah Fiqh: Saudari Kandung yang berstatus Ashabah Ma'al Ghair bertindak seperti Saudara Laki-laki Kandung
+      // Sehingga MENGHIJAB: Saudara Lk Seayah, Saudari Seayah, Keponakan, dan Paman
+      const skandungMaalGhair = aktifMap.get('saudari_kandung')
+      if (skandungMaalGhair?.aktif && skandungMaalGhair.jenis_ashabah === 'maal_ghair') {
+        const terhijabOlehMaalGhair = [
+          'saudara_lk_seayah',
+          'saudari_seayah',
+          'anak_saudara_lk_kandung',
+          'anak_saudara_lk_seayah',
+          'paman_kandung',
+          'paman_seayah',
+          'anak_paman_kandung',
+          'anak_paman_seayah'
+        ]
+        for (const kodeTerhijab of terhijabOlehMaalGhair) {
+          const awT = aktifMap.get(kodeTerhijab)
+          if (awT?.aktif) {
+            awT.aktif = false
+            awT.alasan_tidak_aktif = 'Terhalang (hijab hirman) oleh Saudari Sekandung (Ashabah ma\'al-Ghair berkedudukan seperti Saudara Laki-laki Kandung)'
+            awT.pecahan_aktif = undefined
+            awT.saham_total = 0
+            gugurHijab.push(`${awT.nama_id} → terhalang oleh Saudari Sekandung (Ashabah ma'al-Ghair)`)
+          }
+        }
+      }
+
+      // Begitu juga Saudari Seayah jika menjadi Ashabah Ma'al Ghair (tanpa saudari kandung)
+      const sseayahMaalGhair = aktifMap.get('saudari_seayah')
+      if (sseayahMaalGhair?.aktif && sseayahMaalGhair.jenis_ashabah === 'maal_ghair') {
+        const terhijabOlehMaalGhairSeayah = [
+          'anak_saudara_lk_kandung',
+          'anak_saudara_lk_seayah',
+          'paman_kandung',
+          'paman_seayah',
+          'anak_paman_kandung',
+          'anak_paman_seayah'
+        ]
+        for (const kodeTerhijab of terhijabOlehMaalGhairSeayah) {
+          const awT = aktifMap.get(kodeTerhijab)
+          if (awT?.aktif) {
+            awT.aktif = false
+            awT.alasan_tidak_aktif = 'Terhalang (hijab hirman) oleh Saudari Seayah (Ashabah ma\'al-Ghair berkedudukan seperti Saudara Laki-laki Seayah)'
+            awT.pecahan_aktif = undefined
+            awT.saham_total = 0
+            gugurHijab.push(`${awT.nama_id} → terhalang oleh Saudari Seayah (Ashabah ma'al-Ghair)`)
+          }
         }
       }
 
