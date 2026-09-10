@@ -1701,7 +1701,7 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-rose-700" />
                   <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                    Kaidah Hijab Hirman (33 Relasi Gugur Total)
+                    Kaidah Hijab Hirman ({adminData?.hijabHirmanRules?.length || 52} Relasi Gugur Total)
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -1720,12 +1720,24 @@ export default function AdminPage() {
                 onChange={(e) => setSelectedPenghalang(e.target.value)}
                 className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white font-bold text-slate-700 focus:outline-none"
               >
-                <option value="ALL">Semua Penghalang (كل الحواجب — 33 Relasi)</option>
-                <option value="anak_lk">Anak Laki-laki (الابن — 13 terhalang)</option>
-                <option value="ayah">Ayah (الأب — 7 terhalang)</option>
-                <option value="cucu_lk">Cucu Laki-laki (ابن الابن — 6 terhalang)</option>
-                <option value="saudara_lk_kandung">Saudara Sekandung (الأخ الشقيق — 6 terhalang)</option>
-                <option value="ibu">Ibu (الأم — 2 nenek terhalang)</option>
+                <option value="ALL">Semua Penghalang (كل الحواجب)</option>
+                <optgroup label="Penghalang Wanita (حواجب النساء)">
+                  <option value="ibu">Ibu (الأم — 2 Nenek terhalang)</option>
+                  <option value="anak_pr">Anak Perempuan (البنت — 3 terhalang)</option>
+                  <option value="saudari_kandung">Saudari Sekandung (الأخت الشقيقة — 4 terhalang)</option>
+                  <option value="cucu_pr">Cucu Perempuan (بنت الابن — 2 terhalang)</option>
+                </optgroup>
+                <optgroup label="Penghalang Laki-laki (حواجب الرجال)">
+                  <option value="anak_lk">Anak Laki-laki (الابن — 13 terhalang)</option>
+                  <option value="ayah">Ayah (الأب — 8 terhalang)</option>
+                  <option value="cucu_lk">Cucu Laki-laki (ابن الابن — 6 terhalang)</option>
+                  <option value="saudara_lk_kandung">Saudara Sekandung (الأخ الشقيق — 6 terhalang)</option>
+                  <option value="saudara_lk_seayah">Saudara Seayah (الأخ لأب — 4 terhalang)</option>
+                  <option value="kakek">Kakek (الجد — 2 terhalang)</option>
+                  <option value="keponakan_lk_kandung">Keponakan Kandung (ابن الأخ)</option>
+                  <option value="paman_kandung">Paman Kandung (العم الشقيق)</option>
+                  <option value="paman_seayah">Paman Seayah (العم لأب)</option>
+                </optgroup>
               </select>
             </div>
 
