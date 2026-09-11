@@ -675,10 +675,11 @@ export function PohonWarisanCanvas() {
     }`}>
       
       {/* ═══ SUB-TOOLBAR (TEPAT DI BAWAH NAVBAR UTAMA) ══════════════ */}
-      <div className="border-b border-slate-200 bg-white px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 flex-shrink-0 z-30 shadow-xs">
+      <div className="border-b border-slate-200 bg-white px-2.5 sm:px-4 py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-30 shadow-xs">
         
-        {/* Left Side: Learn Mode Toggle, Switcher Mayyit & Controls */}
-        <div className="flex items-center flex-wrap gap-2">
+        {/* Row 1 on Mobile / Left Side on Desktop: Mode Toggle, Mayyit Switcher, Filters */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 overflow-x-auto scrollbar-none">
+          
           {/* Main Simulation / Game Mode Toggle Button */}
           <button
             onClick={() => {
@@ -688,38 +689,38 @@ export function PohonWarisanCanvas() {
                 setIsSimulasiPanelOpen(true)
               }
             }}
-            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-xs ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 sm:gap-2 transition-all shadow-xs flex-shrink-0 ${
               isLearnMode
-                ? 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/25 ring-2 ring-emerald-400/40'
+                ? 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/25 ring-1.5 sm:ring-2 ring-emerald-400/40'
                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/25'
             }`}
           >
             <GraduationCap className="w-4 h-4" />
-            <span>{isLearnMode ? 'Mode Simulasi Aktif' : 'Mulai Simulasi Belajar'}</span>
-            {isLearnMode && <Check className="w-3.5 h-3.5 ml-0.5 text-emerald-200" />}
+            <span>{isLearnMode ? 'Simulasi Aktif' : 'Mulai Simulasi'}</span>
+            {isLearnMode && <Check className="w-3 h-3 text-emerald-200 ml-0.5" />}
           </button>
 
           {/* Switcher Mayyit (L/P) */}
-          <div className="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+          <div className="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs flex-shrink-0">
             <button
               onClick={() => setJenazahGender('L')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all text-xs flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg font-bold transition-all text-xs flex items-center gap-1 ${
                 jenazahGender === 'L'
                   ? 'bg-white text-blue-700 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>♂ Jenazah: Suami (L)</span>
+              <span>♂ <span className="hidden sm:inline">Jenazah: </span>Suami<span className="hidden sm:inline"> (L)</span></span>
             </button>
             <button
               onClick={() => setJenazahGender('P')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all text-xs flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg font-bold transition-all text-xs flex items-center gap-1 ${
                 jenazahGender === 'P'
                   ? 'bg-white text-rose-700 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>♀ Jenazah: Istri (P)</span>
+              <span>♀ <span className="hidden sm:inline">Jenazah: </span>Istri<span className="hidden sm:inline"> (P)</span></span>
             </button>
           </div>
 
@@ -751,8 +752,8 @@ export function PohonWarisanCanvas() {
               </button>
             </div>
           ) : (
-            /* Standard Filter Chips */
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+            /* Standard Filter Chips (Desktop) */
+            <div className="hidden sm:flex items-center gap-1 overflow-x-auto scrollbar-none">
               {FILTER_TABS.map(tab => {
                 const active = filterMode === tab.id
                 return (
@@ -773,10 +774,32 @@ export function PohonWarisanCanvas() {
           )}
         </div>
 
-        {/* Right Side: Search Box & Zoom Controls */}
-        <div className="flex items-center gap-2">
+        {/* Mobile Filter Chips (Only when !isLearnMode) */}
+        {!isLearnMode && (
+          <div className="flex sm:hidden items-center gap-1 overflow-x-auto scrollbar-none pb-0.5">
+            {FILTER_TABS.map(tab => {
+              const active = filterMode === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setFilterMode(tab.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border whitespace-nowrap ${
+                    active
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold shadow-xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Row 2 on Mobile / Right Side on Desktop: Search Box & Zoom Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Search Box */}
-          <div className="relative w-36 sm:w-52">
+          <div className="relative flex-1 sm:w-52">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -788,7 +811,7 @@ export function PohonWarisanCanvas() {
           </div>
 
           {/* Zoom Buttons */}
-          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 flex-shrink-0">
             <button
               onClick={handleZoomOut}
               className="p-1 rounded-lg hover:bg-white text-slate-600 transition-colors"
@@ -796,7 +819,7 @@ export function PohonWarisanCanvas() {
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="px-1 text-[11px] font-mono font-semibold text-slate-700 min-w-[36px] text-center">
+            <span className="px-1 text-[11px] font-mono font-semibold text-slate-700 min-w-[34px] text-center">
               {Math.round(scale * 100)}%
             </span>
             <button
@@ -818,7 +841,7 @@ export function PohonWarisanCanvas() {
           {/* Fullscreen Button */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors"
+            className="p-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors flex-shrink-0"
             title={isFullscreen ? 'Keluar Fullscreen' : 'Layar Penuh'}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
