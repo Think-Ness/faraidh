@@ -16,7 +16,9 @@ import {
   ArrowRight,
   Sparkles,
   BookMarked,
+  Network,
 } from 'lucide-react'
+import { PohonWarisanCanvas } from '@/components/tree/PohonWarisanCanvas'
 
 const KONSEP_UTAMA = [
   {
@@ -162,6 +164,15 @@ export default function LandingPage() {
           </div>
           <nav className="flex items-center gap-2">
             <Link
+              href="/pohon-warisan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 text-slate-700 hover:text-emerald-800 text-xs font-semibold transition-all"
+            >
+              <Network className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden md:inline">Pohon Warisan</span>
+            </Link>
+            <Link
               href="/latihan"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all"
             >
@@ -228,22 +239,30 @@ export default function LandingPage() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
               href="/kalkulator"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 group"
+              className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 group"
             >
               <Calculator className="w-5 h-5" />
-              Buka Kalkulator Faraidh
+              Buka Kalkulator
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
+              href="/pohon-warisan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-300 font-bold text-sm sm:text-base shadow-sm transition-all duration-200 group"
+            >
+              <Network className="w-5 h-5 text-emerald-600" />
+              Bagan Silsilah Waris (ص ١٥) ↗
+            </Link>
+            <Link
               href="/latihan"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-emerald-300 font-bold text-sm sm:text-base shadow-sm transition-all duration-200 group"
+              className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200 hover:border-emerald-300 font-bold text-sm sm:text-base shadow-sm transition-all duration-200 group"
             >
               <Trophy className="w-5 h-5 text-amber-600" />
-              Mulai Latihan Soal
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              Latihan Soal
             </Link>
           </div>
         </div>
@@ -330,6 +349,142 @@ export default function LandingPage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SHOWCASE SECTION POHON WARISAN (HALAMAN 15) ════════════ */}
+      <section id="pohon-warisan" className="py-16 sm:py-20 bg-gradient-to-b from-slate-100 to-slate-50 text-slate-900 relative overflow-hidden border-y border-slate-200">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
+          
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold mb-4 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+              MATERI KITAB KELAS 3 KMI GONTOR — HALAMAN 15
+            </div>
+            
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+              Kanvas Pohon Silsilah Ahli Waris
+            </h2>
+            <p className="font-arabic text-2xl sm:text-3xl text-emerald-800 font-bold mb-4 leading-loose">
+              شَجَرَةُ الوَرَثَةِ الشرعية
+            </p>
+            <p className="text-xs sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
+              Pelajari seluruh silsilah 25 golongan ahli waris, pembagian porsi pasti (*Furudh*), hak sisa (*Ashabah*), serta kaidah pengguguran (*Hijab Hirman*) dalam kanvas interaktif layar penuh yang leluasa.
+            </p>
+          </div>
+
+          {/* Showcase Banner Card with New Tab Button */}
+          <div className="rounded-3xl bg-white border-2 border-emerald-200/80 p-6 sm:p-10 shadow-xl relative overflow-hidden group hover:border-emerald-400 transition-all duration-300">
+            {/* Background subtle decoration */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50 rounded-full blur-3xl opacity-70 -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-60 h-60 bg-blue-50 rounded-full blur-2xl opacity-60 translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+              
+              {/* Left Column: Visual feature list & highlight pills */}
+              <div className="flex-1 space-y-4 text-left">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-200">
+                    25 Ahli Waris Lengkap
+                  </span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-100 text-blue-900 border border-blue-200">
+                    Kaidah Halaman 15
+                  </span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-200">
+                    Interactive Pan &amp; Zoom
+                  </span>
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                  Eksplorasi Silsilah Faraidh Layar Penuh
+                </h3>
+
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Buka kanvas interaktif di tab baru untuk pengalaman belajar yang optimal.
+                  Dilengkapi fitur filter kategori, switch pewaris (laki-laki / perempuan), pencarian nama Arab/Latin, serta modal detail lengkap berisi dalil Al-Qur&apos;an dan Hadits.
+                </p>
+
+                {/* Micro preview badges */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Usul</p>
+                    <p className="text-xs font-extrabold text-slate-800">Leluhur</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Furu&apos;</p>
+                    <p className="text-xs font-extrabold text-slate-800">Keturunan</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Hawasyi</p>
+                    <p className="text-xs font-extrabold text-slate-800">Saudara &amp; Paman</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Sabab</p>
+                    <p className="text-xs font-extrabold text-slate-800">Pernikahan</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Prominent Call-to-Action View Button */}
+              <div className="flex flex-col items-center justify-center gap-3 w-full md:w-auto flex-shrink-0">
+                <Link
+                  href="/pohon-warisan"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:scale-105 transition-all duration-200 group text-center"
+                >
+                  <Network className="w-6 h-6 text-emerald-200 group-hover:scale-110 transition-transform" />
+                  <span>Buka Kanvas Pohon Warisan</span>
+                  <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <p className="text-[11px] text-slate-400 text-center flex items-center gap-1">
+                  <span>Membuka di tab baru (Mode Kanvas Layar Penuh)</span>
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Quick Learning Tips below banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 font-bold flex-shrink-0">
+                ١
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-slate-900 mb-1">6 Golongan Tidak Pernah Gugur</h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Ayah, Ibu, Anak Lk, Anak Pr, Suami, dan Istri tidak bisa dihijab total oleh siapapun.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-800 font-bold flex-shrink-0">
+                ٢
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-slate-900 mb-1">Arah Jalur Nasab Syar&apos;i</h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Usul (leluhur ke atas), Furu&apos; (keturunan ke bawah), dan Hawasyi (saudara &amp; paman ke samping).
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-800 font-bold flex-shrink-0">
+                ٣
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-slate-900 mb-1">Kaidah Hijab Hirman</h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Yang dekat menghalangi yang jauh, dan yang sekandung lebih kuat dibanding yang seayah.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
