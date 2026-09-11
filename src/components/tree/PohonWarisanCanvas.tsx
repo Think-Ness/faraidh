@@ -210,6 +210,51 @@ export function PohonWarisanCanvas() {
 
   const handleMouseUp = () => setIsDragging(false)
 
+  // Touch pan & pinch-to-zoom handlers for Mobile devices
+  const touchStartDistRef = useRef<number | null>(null)
+  const initialScaleRef = useRef<number>(scale)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.warits-card') || (e.target as HTMLElement).closest('.union-node')) return
+    if (e.touches.length === 1) {
+      setIsDragging(true)
+      const touch = e.touches[0]
+      setDragStart({ x: touch.clientX - pan.x, y: touch.clientY - pan.y })
+      touchStartDistRef.current = null
+    } else if (e.touches.length === 2) {
+      setIsDragging(false)
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      touchStartDistRef.current = dist
+      initialScaleRef.current = scale
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      const touch = e.touches[0]
+      setPan({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y,
+      })
+    } else if (e.touches.length === 2 && touchStartDistRef.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      const factor = dist / touchStartDistRef.current
+      const newScale = Math.min(Math.max(initialScaleRef.current * factor, 0.4), 1.8)
+      setScale(newScale)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+    touchStartDistRef.current = null
+  }
+
   // Wheel zoom handler
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
@@ -678,9 +723,9 @@ export function PohonWarisanCanvas() {
             </button>
           </div>
 
-          {/* Learn Mode Action: Open Side Panel & Reset */}
+          {/* Learn Mode Action: Open Side Panel & Reset (Desktop only, mobile uses floating bottom pill) */}
           {isLearnMode ? (
-            <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+            <div className="hidden sm:flex items-center gap-1.5 animate-in fade-in duration-200">
               <button
                 onClick={() => setIsSimulasiPanelOpen(prev => !prev)}
                 className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 border transition-all ${
@@ -789,7 +834,10 @@ export function PohonWarisanCanvas() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
-        className={`relative w-full flex-1 h-full min-h-0 bg-slate-50/70 overflow-hidden select-none cursor-grab active:cursor-grabbing ${
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`relative w-full flex-1 h-full min-h-0 bg-slate-50/70 overflow-hidden select-none touch-none cursor-grab active:cursor-grabbing ${
           isDragging ? 'cursor-grabbing' : ''
         }`}
         style={{
@@ -961,7 +1009,8 @@ export function PohonWarisanCanvas() {
                       handleUpdateHeirQty(node.id, 0)
                     } else {
                       handleUpdateHeirQty(node.id, 1)
-                      if (!isSimulasiPanelOpen) {
+                      // Only auto-open on desktop, keep mobile view clean for uninterrupted selection
+                      if (typeof window !== 'undefined' && window.innerWidth >= 640 && !isSimulasiPanelOpen) {
                         setIsSimulasiPanelOpen(true)
                       }
                     }
@@ -1225,6 +1274,60 @@ export function PohonWarisanCanvas() {
         onClose={() => setSelectedNode(null)}
         jenazahGender={jenazahGender}
       />
+
+      {/* Floating Bottom Bar for Mobile View during Learning Mode */}
+      {isLearnMode && !isSimulasiPanelOpen && (
+        <div className="fixed bottom-4 left-3 right-3 sm:hidden z-30 animate-in slide-in-from-bottom duration-300">
+          <div
+            onClick={() => setIsSimulasiPanelOpen(true)}
+            className="bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl border border-slate-700/60 flex items-center justify-between gap-2.5 cursor-pointer active:scale-98 transition-transform"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                {totalSelectedHeirCount > 0 && (
+                  <span
+                    key={totalSelectedHeirCount}
+                    className="absolute -top-1.5 -right-1.5 px-1.5 py-0.2 rounded-full bg-emerald-500 text-white font-extrabold text-[10px] ring-2 ring-slate-900 animate-bounce shadow-xs"
+                  >
+                    +{totalSelectedHeirCount}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white truncate">
+                    {totalSelectedHeirCount === 0 ? 'Pilih Ahli Waris di Kanvas' : `${totalSelectedHeirCount} Ahli Waris Terpilih`}
+                  </span>
+                  {calculationResult?.asal_masalah ? (
+                    <span className="px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono text-[10px] font-bold border border-slate-700">
+                      AM: {calculationResult.asal_masalah}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-[11px] text-slate-300 truncate">
+                  {totalSelectedHeirCount === 0
+                    ? 'Ketuk card pada bagan untuk memilih'
+                    : 'Ketuk untuk melihat tabel & kalkulasi'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsSimulasiPanelOpen(true)
+              }}
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold whitespace-nowrap shadow-xs flex items-center gap-1 flex-shrink-0 active:scale-95 transition-transform"
+            >
+              <span>Lihat Hasil</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Interactive Simulation & Calculation Side Panel */}
       <PohonWarisanSimulasiPanel

@@ -179,23 +179,35 @@ export const PohonWarisanSimulasiPanel: React.FC<PohonWarisanSimulasiPanelProps>
   )
 
   return (
-    <aside className="fixed top-14 right-0 bottom-0 w-full sm:w-[480px] lg:w-[520px] bg-white border-l border-slate-200 shadow-2xl z-40 flex flex-col transition-all duration-300 animate-in slide-in-from-right">
-      
-      {/* ═══ HEADER PANEL ══════════════════════════════════════════ */}
-      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-2 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
-            <Calculator className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 leading-tight">
-              Simulasi &amp; Hasil Faraidh
-            </h2>
-            <p className="text-[11px] text-slate-500 font-arabic" dir="rtl">
-              حِسَابُ الفَرَائِضِ وَالقِسْمَة
-            </p>
-          </div>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-slate-900/45 backdrop-blur-xs z-40 sm:hidden transition-opacity animate-in fade-in duration-200"
+      />
+
+      <aside className="fixed bottom-0 left-0 right-0 h-[82vh] max-h-[90vh] sm:h-auto sm:max-h-none sm:top-14 sm:bottom-0 sm:left-auto sm:right-0 w-full sm:w-[480px] lg:w-[520px] bg-white rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-slate-200 shadow-2xl z-50 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:slide-in-from-right overflow-hidden">
+        
+        {/* Mobile Pull Handle Tab */}
+        <div className="pt-2.5 pb-1 sm:hidden flex justify-center cursor-pointer bg-slate-50 border-b border-slate-100" onClick={onClose}>
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full hover:bg-slate-400 transition-colors" />
         </div>
+
+        {/* ═══ HEADER PANEL ══════════════════════════════════════════ */}
+        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+              <Calculator className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 leading-tight">
+                Simulasi &amp; Hasil Faraidh
+              </h2>
+              <p className="text-[11px] text-slate-500 font-arabic" dir="rtl">
+                حِسَابُ الفَرَائِضِ وَالقِسْمَة
+              </p>
+            </div>
+          </div>
 
         <div className="flex items-center gap-1.5">
           <button
@@ -702,5 +714,6 @@ export const PohonWarisanSimulasiPanel: React.FC<PohonWarisanSimulasiPanelProps>
         </button>
       </div>
     </aside>
+  </>
   )
 }
