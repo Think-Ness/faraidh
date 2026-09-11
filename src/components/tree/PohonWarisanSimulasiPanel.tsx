@@ -16,8 +16,15 @@ import {
   HelpCircle,
   FileText,
   Percent,
+  Layers,
 } from 'lucide-react'
-import type { HasilKalkulasi, HasilPerAhliWaris, LogEdukasi } from '@/lib/faraidh/types'
+import {
+  type HasilKalkulasi,
+  type HasilPerAhliWaris,
+  type LogEdukasi,
+  getHeirHierarchyRank,
+} from '@/lib/faraidh/types'
+import { KasusKhususMaklumatCard } from '@/components/calculator/KasusKhususMaklumatCard'
 
 export interface SimulasiTirkahInput {
   harta_kotor: number
@@ -85,7 +92,7 @@ export const PRESET_CASES: PresetCase[] = [
     titleArab: 'المُشْتَرَكَة / الحِمَارِيَّة',
     subtitle: 'Suami, Ibu, 2 Sdr Seibu, 1 Sdr Lk Kandung',
     jenazahGender: 'P',
-    heirs: { pasangan: 1, ibu: 1, saudara_seibu: 2, saudara_lk_kandung: 1 },
+    heirs: { pasangan: 1, ibu: 1, saudara_lk_seibu: 2, saudara_lk_kandung: 1 },
     tirkah: 120000000,
     description: 'Saudara laki-laki sekandung diserikatkan ke dalam 1/3 bagian saudara seibu atas dasar kesamaan ibu (Ikhwah li Umm).'
   },
@@ -103,11 +110,11 @@ export const PRESET_CASES: PresetCase[] = [
     id: 'kalalah',
     title: 'Kasus Kalalah (Tanpa Usul & Furu\')',
     titleArab: 'الكَلَالَة',
-    subtitle: '2 Saudara Seibu, 1 Saudari Kandung',
+    subtitle: '1 Sdr Lk Seibu, 1 Sdri Seibu, 1 Sdri Kandung',
     jenazahGender: 'L',
-    heirs: { saudara_seibu: 2, saudari_kandung: 1 },
+    heirs: { saudara_lk_seibu: 1, saudari_seibu: 1, saudari_kandung: 1 },
     tirkah: 90000000,
-    description: 'Pewaris tidak memiliki orang tua dan keturunan. 2 Saudara Seibu berbagi rata 1/3 (1:1 laki & perempuan), Saudari Kandung mendapat 1/2.'
+    description: 'Pewaris tidak memiliki orang tua dan keturunan. 2 Saudara/i Seibu berbagi rata 1/3 (1:1 laki & perempuan), Saudari Kandung mendapat 1/2.'
   }
 ]
 
@@ -304,47 +311,183 @@ export const PohonWarisanSimulasiPanel: React.FC<PohonWarisanSimulasiPanelProps>
         {activeTab === 'tabel' && (
           <div className="space-y-4">
             
-            {/* Summary Metrics Cards */}
+            {/* Summary Metrics Cards with Clear Progression */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">
+              {/* Card 1: Asal Masalah (Pokok -> Penyesuaian) */}
+              <div className={`p-2.5 rounded-xl border transition-all ${
+                calculationResult?.asal_masalah_aul
+                  ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                  : calculationResult?.asal_masalah_radd
+                  ? 'bg-blue-50/80 border-blue-300 text-blue-950'
+                  : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">
                   Asal Masalah
                 </span>
-                <span className="text-base font-extrabold text-slate-800">
-                  {calculationResult?.asal_masalah || '-'}
-                </span>
+                {calculationResult?.asal_masalah_aul ? (
+                  <div>
+                    <div className="flex items-center justify-center gap-1 mt-0.5">
+                      <span className="text-xs text-slate-400 line-through font-semibold">
+                        {calculationResult.asal_masalah_pokok}
+                      </span>
+                      <span className="text-sm font-black text-amber-700 font-mono">
+                        → {calculationResult.asal_masalah_aul}
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-extrabold text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                      'Aul (+{calculationResult.asal_masalah_aul - calculationResult.asal_masalah_pokok})
+                    </span>
+                  </div>
+                ) : calculationResult?.asal_masalah_radd ? (
+                  <div>
+                    <div className="flex items-center justify-center gap-1 mt-0.5">
+                      <span className="text-xs text-slate-400 line-through font-semibold">
+                        {calculationResult.asal_masalah_pokok}
+                      </span>
+                      <span className="text-sm font-black text-blue-700 font-mono">
+                        → {calculationResult.asal_masalah_radd}
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-extrabold text-blue-800 bg-blue-200/80 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                      Radd (-{calculationResult.asal_masalah_pokok - calculationResult.asal_masalah_radd})
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-base font-extrabold text-slate-800 block mt-0.5">
+                      {calculationResult?.asal_masalah || '-'}
+                    </span>
+                    <span className="text-[9.5px] text-slate-500 font-medium">
+                      {calculationResult ? 'Pokok (\'Adilah)' : 'Belum Ada'}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200">
-                <span className="text-[10px] uppercase font-bold text-blue-600 block">
+              {/* Card 2: Tashih / Total Saham */}
+              <div className={`p-2.5 rounded-xl border transition-all ${
+                (calculationResult?.juz_sahm || 1) > 1
+                  ? 'bg-purple-50/80 border-purple-300 text-purple-950'
+                  : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">
                   Tashih / Saham
                 </span>
-                <span className="text-base font-extrabold text-blue-800">
-                  {calculationResult?.asal_masalah_tashih || calculationResult?.asal_masalah_aul || calculationResult?.asal_masalah || '-'}
-                </span>
+                {(calculationResult?.juz_sahm || 1) > 1 ? (
+                  <div>
+                    <div className="flex items-center justify-center gap-1 mt-0.5">
+                      <span className="text-xs text-slate-500 font-mono font-semibold">
+                        {calculationResult?.asal_masalah}×{calculationResult?.juz_sahm}
+                      </span>
+                      <span className="text-sm font-black text-purple-700 font-mono">
+                        = {calculationResult?.asal_masalah_tashih}
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-extrabold text-purple-800 bg-purple-200/80 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                      Juz' Sahm (×{calculationResult?.juz_sahm})
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-base font-extrabold text-blue-700 block mt-0.5">
+                      {calculationResult?.asal_masalah_tashih || calculationResult?.asal_masalah || '-'}
+                    </span>
+                    <span className="text-[9.5px] text-slate-500 font-medium">
+                      {calculationResult ? 'Tanpa Inkisâr' : 'Belum Ada'}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
-                <span className="text-[10px] uppercase font-bold text-emerald-600 block">
+              {/* Card 3: Harta Bersih & Nilai 1 Saham */}
+              <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-300 text-center">
+                <span className="text-[10px] uppercase font-bold text-emerald-700 block leading-tight">
                   Harta Bersih
                 </span>
-                <span className="text-xs font-bold text-emerald-800 block truncate">
+                <span className="text-xs font-bold text-emerald-900 block truncate mt-0.5">
                   {formatRupiah(calculationResult?.total_harta_bersih || 0)}
+                </span>
+                <span className="text-[9.5px] text-emerald-700 font-medium block truncate mt-0.5">
+                  {calculationResult?.nilai_satu_saham
+                    ? `@${formatRupiah(calculationResult.nilai_satu_saham)}/saham`
+                    : 'Siap Dibagi'}
                 </span>
               </div>
             </div>
 
-            {/* Special Case Alert */}
-            {calculationResult?.kasus_khusus_aktif && (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <p className="font-bold">Kasus Khusus Terdeteksi:</p>
-                  <p className="text-amber-800 mt-0.5">
-                    {calculationResult.kasus_khusus_aktif}
-                  </p>
+            {/* Detailed Progression Explanation Card (Alur Takhrij & Tashih) */}
+            {calculationResult && activeHeirCount > 0 && (
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5 text-[11px]">
+                    <Layers className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Alur Hitungan Faraidh:</span>
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${statusBadge.color}`}>
+                    {statusBadge.label}
+                  </span>
                 </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
+                  {/* Step 1: Pokok */}
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 whitespace-nowrap shadow-2xs">
+                    <span className="text-slate-400 font-bold">1. Pokok:</span>
+                    <span className="font-mono font-bold text-slate-800">{calculationResult.asal_masalah_pokok}</span>
+                  </div>
+
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+
+                  {/* Step 2: Aul / Radd / Adilah */}
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-lg border whitespace-nowrap shadow-2xs ${
+                    calculationResult.asal_masalah_aul
+                      ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
+                      : calculationResult.asal_masalah_radd
+                      ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
+                  }`}>
+                    <span className="opacity-75">2. Penyesuaian:</span>
+                    <span className="font-mono">
+                      {calculationResult.asal_masalah_aul
+                        ? `'Aul (${calculationResult.asal_masalah_pokok} → ${calculationResult.asal_masalah_aul})`
+                        : calculationResult.asal_masalah_radd
+                        ? `Radd (${calculationResult.asal_masalah_pokok} → ${calculationResult.asal_masalah_radd})`
+                        : `'Adilah (Tepat ${calculationResult.asal_masalah_pokok})`}
+                    </span>
+                  </div>
+
+                  {/* Step 3: Tashih (if any) */}
+                  {calculationResult.juz_sahm > 1 && (
+                    <>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 border border-purple-300 text-purple-900 font-bold whitespace-nowrap shadow-2xs">
+                        <span className="opacity-75">3. Tashih:</span>
+                        <span className="font-mono">
+                          {calculationResult.asal_masalah} × {calculationResult.juz_sahm} = {calculationResult.asal_masalah_tashih}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Explanation text */}
+                <p className="text-[11px] text-slate-600 leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
+                  {calculationResult.penjelasan_perpindahan ||
+                    (calculationResult.asal_masalah_aul
+                      ? `Asal Masalah Pokok ${calculationResult.asal_masalah_pokok} mengalami 'Aul (membengkak) menjadi ${calculationResult.asal_masalah_aul} karena total saham furudh melebihi pokok.`
+                      : calculationResult.asal_masalah_radd
+                      ? `Asal Masalah Pokok ${calculationResult.asal_masalah_pokok} disesuaikan menjadi ${calculationResult.asal_masalah_radd} melalui kaidah Radd (sisa dikembalikan proporsional).`
+                      : `Asal Masalah Pokok ${calculationResult.asal_masalah_pokok} berstatus 'Adilah (total saham pas sama dengan pokok).`)}
+                </p>
               </div>
+            )}
+
+            {/* Special Case Educational Card */}
+            {calculationResult?.kasus_khusus_aktif && (
+              <KasusKhususMaklumatCard
+                kasusKode={calculationResult.kasus_khusus_aktif}
+                kasusMaklumat={calculationResult.kasus_khusus_maklumat}
+                defaultExpanded={true}
+              />
             )}
 
             {/* Main Heirs Table */}
@@ -415,7 +558,7 @@ export const PohonWarisanSimulasiPanel: React.FC<PohonWarisanSimulasiPanelProps>
                               </span>
                             ) : (
                               <span className="px-1.5 py-0.5 rounded text-[11px] font-extrabold bg-blue-100 text-blue-800">
-                                {heir.pecahan || '-'}
+                                {heir.pecahan ? heir.pecahan.replace('_gabungan', '') : '-'}
                               </span>
                             )}
                           </td>
@@ -454,35 +597,64 @@ export const PohonWarisanSimulasiPanel: React.FC<PohonWarisanSimulasiPanelProps>
                 Kelola Jumlah Ahli Waris Terpilih:
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(selectedHeirs).map(([nodeId, qty]) => {
-                  if (qty <= 0) return null
-                  const label = nodeId.replace(/_/g, ' ')
-                  return (
-                    <div
-                      key={nodeId}
-                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 border border-slate-300 text-xs font-semibold"
-                    >
-                      <span className="capitalize">{label}</span>
-                      <div className="flex items-center gap-1 bg-white px-1 py-0.5 rounded border border-slate-200">
-                        <button
-                          onClick={() => onUpdateHeirQty(nodeId, Math.max(0, qty - 1))}
-                          className="w-4 h-4 flex items-center justify-center font-bold text-slate-600 hover:text-rose-600"
-                        >
-                          -
-                        </button>
-                        <span className="font-bold text-blue-700 text-xs min-w-[12px] text-center">
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() => onUpdateHeirQty(nodeId, qty + 1)}
-                          className="w-4 h-4 flex items-center justify-center font-bold text-slate-600 hover:text-emerald-600"
-                        >
-                          +
-                        </button>
+                {Object.entries(selectedHeirs)
+                  .filter(([, qty]) => qty > 0)
+                  .sort(([a], [b]) => getHeirHierarchyRank(a) - getHeirHierarchyRank(b))
+                  .map(([nodeId, qty]) => {
+                    const labelMap: Record<string, string> = {
+                      pasangan: jenazahGender === 'L' ? 'Istri' : 'Suami',
+                      suami: 'Suami',
+                      istri: 'Istri',
+                      ayah: 'Ayah',
+                      ibu: 'Ibu',
+                      kakek: 'Kakek',
+                      nenek_ibu: 'Nenek (Ibu)',
+                      nenek_ayah: 'Nenek (Ayah)',
+                      anak_lk: 'Anak Lk',
+                      anak_pr: 'Anak Pr',
+                      cucu_lk: 'Cucu Lk',
+                      cucu_pr: 'Cucu Pr',
+                      saudara_lk_kandung: 'Sdr Lk Kandung',
+                      saudari_kandung: 'Sdri Kandung',
+                      saudara_lk_seayah: 'Sdr Lk Seayah',
+                      saudari_seayah: 'Sdri Seayah',
+                      saudara_seibu: 'Saudara/i Seibu',
+                      saudara_lk_seibu: 'Saudara Lk Seibu',
+                      saudari_seibu: 'Saudari Seibu',
+                      keponakan_lk_kandung: 'Keponakan Kandung',
+                      keponakan_lk_seayah: 'Keponakan Seayah',
+                      paman_kandung: 'Paman Kandung',
+                      paman_seayah: 'Paman Seayah',
+                      sepupu_lk_paman_kandung: 'Sepupu Kandung',
+                      sepupu_lk_paman_seayah: 'Sepupu Seayah',
+                    }
+                    const label = labelMap[nodeId] || nodeId.replace(/_/g, ' ')
+                    return (
+                      <div
+                        key={nodeId}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 border border-slate-300 text-xs font-semibold"
+                      >
+                        <span className="capitalize">{label}</span>
+                        <div className="flex items-center gap-1 bg-white px-1 py-0.5 rounded border border-slate-200">
+                          <button
+                            onClick={() => onUpdateHeirQty(nodeId, Math.max(0, qty - 1))}
+                            className="w-4 h-4 flex items-center justify-center font-bold text-slate-600 hover:text-rose-600"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-blue-700 text-xs min-w-[12px] text-center">
+                            {qty}
+                          </span>
+                          <button
+                            onClick={() => onUpdateHeirQty(nodeId, qty + 1)}
+                            className="w-4 h-4 flex items-center justify-center font-bold text-slate-600 hover:text-emerald-600"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
             </div>
           </div>

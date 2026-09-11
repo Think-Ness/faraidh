@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import type { HasilKalkulasi } from '@/lib/faraidh/types'
 import LogEdukasiPanel from './LogEdukasiPanel'
+import { KasusKhususMaklumatCard } from './KasusKhususMaklumatCard'
 
 const STATUS_CONFIG: Record<string, { label: string; labelArab: string; badge: string; icon: typeof Scale }> = {
   furudh:              { label: 'Ashabul Furudh', labelArab: 'فرض', badge: 'badge-emerald', icon: Scale },
@@ -274,6 +275,15 @@ export default function StepResult({ hasil, onReset }: StepResultProps) {
               <span>{hasil.penjelasan_perpindahan}</span>
             </div>
           </div>
+        )}
+
+        {/* ─── MAKLUMAT STUDI SANTRI: KASUS KHUSUS ─── */}
+        {hasil.kasus_khusus_aktif && (
+          <KasusKhususMaklumatCard
+            kasusKode={hasil.kasus_khusus_aktif}
+            kasusMaklumat={hasil.kasus_khusus_maklumat}
+            defaultExpanded={true}
+          />
         )}
       </div>
 

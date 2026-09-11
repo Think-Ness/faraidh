@@ -63,8 +63,8 @@ export const FURUDH_RULES: FurudhRule[] = [
   { id: 12, ahli_waris_id: ID('saudari_seayah'), pecahan: '2/3', syarat_jumlah_min: 2, syarat_kondisi: { requires_absence_of: ['saudara_lk_seayah','saudara_lk_kandung','saudari_kandung','ayah','kakek','anak_lk','anak_pr','cucu_lk','cucu_pr'] }, keterangan: '2+ saudari seayah' },
   // 1/3
   { id: 13, ahli_waris_id: ID('ibu'), pecahan: '1/3', syarat_kondisi: { requires_absence_of: ['anak_lk','anak_pr','cucu_lk','cucu_pr'], requires_saudara_max: 1 }, keterangan: 'Ibu 1/3 tanpa anak/cucu & < 2 saudara/i' },
-  { id: 14, ahli_waris_id: ID('saudara_lk_seibu'), pecahan: '1/3_gabungan', syarat_jumlah_min: 2, syarat_kondisi: { gabung_dengan: 'saudari_seibu', pembagian: 'rata' }, keterangan: '2+ saudara/i seibu berbagi 1/3' },
-  { id: 15, ahli_waris_id: ID('saudari_seibu'), pecahan: '1/3_gabungan', syarat_jumlah_min: 2, syarat_kondisi: { gabung_dengan: 'saudara_lk_seibu', pembagian: 'rata' }, keterangan: '2+ saudara/i seibu berbagi 1/3' },
+  { id: 14, ahli_waris_id: ID('saudara_lk_seibu'), pecahan: '1/3', syarat_jumlah_min: 2, syarat_kondisi: { gabung_dengan: 'saudari_seibu', pembagian: 'rata' }, keterangan: '2+ saudara/i seibu berbagi 1/3' },
+  { id: 15, ahli_waris_id: ID('saudari_seibu'), pecahan: '1/3', syarat_jumlah_min: 2, syarat_kondisi: { gabung_dengan: 'saudara_lk_seibu', pembagian: 'rata' }, keterangan: '2+ saudara/i seibu berbagi 1/3' },
   // 1/6
   { id: 16, ahli_waris_id: ID('ibu'), pecahan: '1/6', syarat_kondisi: { requires_presence_of_any: ['anak_lk','anak_pr','cucu_lk','cucu_pr'], or_requires_saudara_min: 2 }, keterangan: 'Ibu 1/6 jika ada anak/cucu atau 2+ saudara/i' },
   { id: 17, ahli_waris_id: ID('ayah'), pecahan: '1/6', syarat_kondisi: { requires_presence_of_any: ['anak_lk','cucu_lk'] }, keterangan: 'Ayah 1/6 jika ada anak/cucu laki-laki' },
@@ -72,7 +72,6 @@ export const FURUDH_RULES: FurudhRule[] = [
   { id: 19, ahli_waris_id: ID('nenek_ibu'), pecahan: '1/6', syarat_kondisi: { requires_absence_of: ['ibu'] }, keterangan: 'Nenek jalur ibu 1/6' },
   { id: 20, ahli_waris_id: ID('nenek_ayah'), pecahan: '1/6', syarat_kondisi: { requires_absence_of: ['ibu'] }, keterangan: 'Nenek jalur ayah 1/6' },
   { id: 21, ahli_waris_id: ID('cucu_pr'), pecahan: '1/6', syarat_kondisi: { requires_presence_of_exact: { anak_pr: 1 }, requires_absence_of: ['anak_lk','cucu_lk'] }, keterangan: 'Cucu perempuan pelengkap 2/3' },
-  { id: 22, ahli_waris_id: ID('saudari_seayah'), pecahan: '1/6', syarat_kondisi: { requires_presence_of_exact: { saudari_kandung: 1 }, requires_absence_of: ['saudara_lk_seayah','ayah','kakek','anak_lk','anak_pr','cucu_lk','cucu_pr'] }, keterangan: 'Saudari seayah pelengkap 2/3' },
   { id: 23, ahli_waris_id: ID('saudara_lk_seibu'), pecahan: '1/6', syarat_kondisi: { syarat_jumlah_tunggal: true }, keterangan: 'Saudara seibu tunggal 1/6' },
   { id: 24, ahli_waris_id: ID('saudari_seibu'), pecahan: '1/6', syarat_kondisi: { syarat_jumlah_tunggal: true }, keterangan: 'Saudari seibu tunggal 1/6' },
 ]
@@ -93,20 +92,40 @@ export const HIJAB_HIRMAN_RULES: HijabHirmanRule[] = [
   hh('cucu_pr','saudari_seibu','Cucu perempuan menghalangi Saudari seibu (بنت الابن تحجب الأخت لأم)'),
   hh('saudari_kandung','saudari_seayah','2+ Saudari kandung / Ashabah ma\'al-Ghair menghalangi Saudari seayah (الأخت الشقيقة تحجب الأخت لأب)'),
   hh('saudari_kandung','saudara_lk_seayah','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Saudara seayah (الأخت الشقيقة مع البنت تحجب الأخ لأب)'),
-  hh('saudari_kandung','keponakan_lk_kandung','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Keponakan (تحجب ابن الأخ)'),
-  hh('saudari_kandung','paman_kandung','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Paman (تحجب العم)'),
+  hh('saudari_kandung','keponakan_lk_kandung','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Keponakan kandung (الأخت الشقيقة تحجب ابن الأخ)'),
+  hh('saudari_kandung','keponakan_lk_seayah','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Keponakan seayah (الأخت الشقيقة تحجب ابن الأخ لأب)'),
+  hh('saudari_kandung','paman_kandung','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Paman kandung (الأخت الشقيقة تحجب العم)'),
+  hh('saudari_kandung','paman_seayah','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Paman seayah (الأخت الشقيقة تحجب العم لأب)'),
+  hh('saudari_kandung','sepupu_lk_paman_kandung','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Sepupu kandung (الأخت الشقيقة تحجب ابن العم)'),
+  hh('saudari_kandung','sepupu_lk_paman_seayah','Saudari kandung (Ashabah ma\'al-Ghair) menghalangi Sepupu seayah (الأخت الشقيقة تحجب ابن العم لأب)'),
 
-  // ─── Penghalang Laki-laki (الحواجب من الرجال) ───
+  // ─── Penghalang Laki-laki: Ayah (الأب) ───
   hh('ayah','kakek','Ayah menghalangi Kakek (الأب يحجب الجد)'),
+  hh('ayah','nenek_ayah','Ayah menghalangi Nenek dari jalur Ayah (الأب يحجب الجدة من الأب)'),
   hh('ayah','saudara_lk_kandung','Ayah menghalangi Saudara kandung (الأب يحجب الأخ الشقيق)'),
   hh('ayah','saudari_kandung','Ayah menghalangi Saudari kandung (الأب يحجب الأخت الشقيقة)'),
   hh('ayah','saudara_lk_seayah','Ayah menghalangi Saudara seayah (الأب يحجب الأخ لأب)'),
   hh('ayah','saudari_seayah','Ayah menghalangi Saudari seayah (الأب يحجب الأخت لأب)'),
   hh('ayah','saudara_lk_seibu','Ayah menghalangi Saudara seibu (الأب يحجب الأخ لأم)'),
   hh('ayah','saudari_seibu','Ayah menghalangi Saudari seibu (الأب يحجب الأخت لأم)'),
-  hh('ayah','nenek_ayah','Ayah menghalangi Nenek dari jalur Ayah (الأب يحجب الجدة من الأب)'),
+  hh('ayah','keponakan_lk_kandung','Ayah menghalangi Keponakan kandung (الأب يحجب ابن الأخ)'),
+  hh('ayah','keponakan_lk_seayah','Ayah menghalangi Keponakan seayah (الأب يحجب ابن الأخ لأب)'),
+  hh('ayah','paman_kandung','Ayah menghalangi Paman kandung (الأب يحجب العم)'),
+  hh('ayah','paman_seayah','Ayah menghalangi Paman seayah (الأب يحجب العم لأب)'),
+  hh('ayah','sepupu_lk_paman_kandung','Ayah menghalangi Sepupu kandung (الأب يحجب ابن العم)'),
+  hh('ayah','sepupu_lk_paman_seayah','Ayah menghalangi Sepupu seayah (الأب يحجب ابن العم لأب)'),
+
+  // ─── Penghalang Laki-laki: Kakek (الجد) ───
   hh('kakek','saudara_lk_seibu','Kakek menghalangi Saudara seibu (الجد يحجب الأخ لأم)'),
   hh('kakek','saudari_seibu','Kakek menghalangi Saudari seibu (الجد يحجب الأخت لأم)'),
+  hh('kakek','keponakan_lk_kandung','Kakek menghalangi Keponakan kandung (الجد يحجب ابن الأخ)'),
+  hh('kakek','keponakan_lk_seayah','Kakek menghalangi Keponakan seayah (الجد يحجب ابن الأخ لأب)'),
+  hh('kakek','paman_kandung','Kakek menghalangi Paman kandung (الجد يحجب العم)'),
+  hh('kakek','paman_seayah','Kakek menghalangi Paman seayah (الجد يحجب العم لأب)'),
+  hh('kakek','sepupu_lk_paman_kandung','Kakek menghalangi Sepupu kandung (الجد يحجب ابن العم)'),
+  hh('kakek','sepupu_lk_paman_seayah','Kakek menghalangi Sepupu seayah (الجد يحجب ابن العم لأب)'),
+
+  // ─── Penghalang Laki-laki: Anak Laki-laki (الابن) ───
   hh('anak_lk','cucu_lk','Anak laki-laki menghalangi Cucu laki-laki (الابن يحجب ابن الابن)'),
   hh('anak_lk','cucu_pr','Anak laki-laki menghalangi Cucu perempuan (الابن يحجب بنت الابن)'),
   hh('anak_lk','saudara_lk_kandung','Anak laki-laki menghalangi Saudara kandung (الابن يحجب الأخ الشقيق)'),
@@ -121,32 +140,70 @@ export const HIJAB_HIRMAN_RULES: HijabHirmanRule[] = [
   hh('anak_lk','paman_seayah','Anak laki-laki menghalangi Paman seayah (الابن يحجب العم لأب)'),
   hh('anak_lk','sepupu_lk_paman_kandung','Anak laki-laki menghalangi Sepupu kandung (الابن يحجب ابن العم)'),
   hh('anak_lk','sepupu_lk_paman_seayah','Anak laki-laki menghalangi Sepupu seayah (الابن يحجب ابن العم لأب)'),
+
+  // ─── Penghalang Laki-laki: Cucu Laki-laki (ابن الابن) ───
   hh('cucu_lk','saudara_lk_kandung','Cucu laki-laki menghalangi Saudara kandung (ابن الابن يحجب الأخ الشقيق)'),
   hh('cucu_lk','saudari_kandung','Cucu laki-laki menghalangi Saudari kandung (ابن الابن يحجب الأخت الشقيقة)'),
   hh('cucu_lk','saudara_lk_seayah','Cucu laki-laki menghalangi Saudara seayah (ابن الابن يحجب الأخ لأب)'),
   hh('cucu_lk','saudari_seayah','Cucu laki-laki menghalangi Saudari seayah (ابن الابن يحجب الأخت لأب)'),
   hh('cucu_lk','saudara_lk_seibu','Cucu laki-laki menghalangi Saudara seibu (ابن الابن يحجب الأخ لأم)'),
   hh('cucu_lk','saudari_seibu','Cucu laki-laki menghalangi Saudari seibu (ابن الابن يحجب الأخت لأم)'),
+  hh('cucu_lk','keponakan_lk_kandung','Cucu laki-laki menghalangi Keponakan kandung (ابن الابن يحجب ابن الأخ)'),
+  hh('cucu_lk','keponakan_lk_seayah','Cucu laki-laki menghalangi Keponakan seayah (ابن الابن يحجب ابن الأخ لأب)'),
+  hh('cucu_lk','paman_kandung','Cucu laki-laki menghalangi Paman kandung (ابن الابن يحجب العم)'),
+  hh('cucu_lk','paman_seayah','Cucu laki-laki menghalangi Paman seayah (ابن الابن يحجب العم لأب)'),
+  hh('cucu_lk','sepupu_lk_paman_kandung','Cucu laki-laki menghalangi Sepupu kandung (ابن الابن يحجب ابن العم)'),
+  hh('cucu_lk','sepupu_lk_paman_seayah','Cucu laki-laki menghalangi Sepupu seayah (ابن الابن يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Saudara Laki-laki Kandung (الأخ الشقيق) ───
   hh('saudara_lk_kandung','saudara_lk_seayah','Saudara kandung menghalangi Saudara seayah (الأخ الشقيق يحجب الأخ لأب)'),
   hh('saudara_lk_kandung','saudari_seayah','Saudara kandung menghalangi Saudari seayah (الأخ الشقيق يحجب الأخت لأب)'),
   hh('saudara_lk_kandung','keponakan_lk_kandung','Saudara kandung menghalangi Keponakan kandung (الأخ الشقيق يحجب ابن الأخ)'),
   hh('saudara_lk_kandung','keponakan_lk_seayah','Saudara kandung menghalangi Keponakan seayah (الأخ الشقيق يحجب ابن الأخ لأب)'),
   hh('saudara_lk_kandung','paman_kandung','Saudara kandung menghalangi Paman kandung (الأخ الشقيق يحجب العم)'),
   hh('saudara_lk_kandung','paman_seayah','Saudara kandung menghalangi Paman seayah (الأخ الشقيق يحجب العم لأب)'),
+  hh('saudara_lk_kandung','sepupu_lk_paman_kandung','Saudara kandung menghalangi Sepupu kandung (الأخ الشقيق يحجب ابن العم)'),
+  hh('saudara_lk_kandung','sepupu_lk_paman_seayah','Saudara kandung menghalangi Sepupu seayah (الأخ الشقيق يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Saudara Laki-laki Seayah (الأخ لأب) ───
   hh('saudara_lk_seayah','keponakan_lk_kandung','Saudara seayah menghalangi Keponakan (الأخ لأب يحجب ابن الأخ)'),
   hh('saudara_lk_seayah','keponakan_lk_seayah','Saudara seayah menghalangi Keponakan seayah (الأخ لأب يحجب ابن الأخ لأب)'),
   hh('saudara_lk_seayah','paman_kandung','Saudara seayah menghalangi Paman (الأخ لأب يحجب العم)'),
   hh('saudara_lk_seayah','paman_seayah','Saudara seayah menghalangi Paman seayah (الأخ لأب يحجب العم لأب)'),
+  hh('saudara_lk_seayah','sepupu_lk_paman_kandung','Saudara seayah menghalangi Sepupu kandung (الأخ لأب يحجب ابن العم)'),
+  hh('saudara_lk_seayah','sepupu_lk_paman_seayah','Saudara seayah menghalangi Sepupu seayah (الأخ لأب يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Saudari Seayah (Ashabah ma'al-Ghair) ───
+  hh('saudari_seayah','keponakan_lk_kandung','Saudari seayah (Ashabah ma\'al-Ghair) menghalangi Keponakan kandung (الأخت لأب مع البنت تحجب ابن الأخ)'),
+  hh('saudari_seayah','keponakan_lk_seayah','Saudari seayah (Ashabah ma\'al-Ghair) menghalangi Keponakan seayah (الأخت لأب مع البنت تحجب ابن الأخ لأب)'),
+  hh('saudari_seayah','paman_kandung','Saudari seayah (Ashabah ma\'al-Ghair) menghalangi Paman kandung (الأخت لأب مع البنت تحجب العم)'),
+  hh('saudari_seayah','paman_seayah','Saudari seayah (Ashabah ma\'al-Ghair) menghalangi Paman seayah (الأخت لأب مع البنت تحجب العم لأب)'),
+  hh('saudari_seayah','sepupu_lk_paman_kandung','Saudari seayah (Ashabah ma\'al-Ghair) menghalangi Sepupu kandung (الأخت لأب مع البنت تحجب ابن العم)'),
+  hh('saudari_seayah','sepupu_lk_paman_seayah','Saudari seayah (Ashabah ma\'al-Ghair) menghalangi Sepupu seayah (الأخت لأب مع البنت تحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Keponakan Laki-laki Kandung (ابن الأخ الشقيق) ───
   hh('keponakan_lk_kandung','keponakan_lk_seayah','Keponakan kandung menghalangi Keponakan seayah (ابن الأخ الشقيق يحجب ابن الأخ لأب)'),
   hh('keponakan_lk_kandung','paman_kandung','Keponakan kandung menghalangi Paman (ابن الأخ يحجب العم)'),
   hh('keponakan_lk_kandung','paman_seayah','Keponakan kandung menghalangi Paman seayah (ابن الأخ يحجب العم لأب)'),
+  hh('keponakan_lk_kandung','sepupu_lk_paman_kandung','Keponakan kandung menghalangi Sepupu kandung (ابن الأخ يحجب ابن العم)'),
+  hh('keponakan_lk_kandung','sepupu_lk_paman_seayah','Keponakan kandung menghalangi Sepupu seayah (ابن الأخ يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Keponakan Laki-laki Seayah (ابن الأخ لأب) ───
   hh('keponakan_lk_seayah','paman_kandung','Keponakan seayah menghalangi Paman (ابن الأخ لأب يحجب العم)'),
   hh('keponakan_lk_seayah','paman_seayah','Keponakan seayah menghalangi Paman seayah (ابن الأخ لأب يحجب العم لأب)'),
+  hh('keponakan_lk_seayah','sepupu_lk_paman_kandung','Keponakan seayah menghalangi Sepupu kandung (ابن الأخ لأب يحجب ابن العم)'),
+  hh('keponakan_lk_seayah','sepupu_lk_paman_seayah','Keponakan seayah menghalangi Sepupu seayah (ابن الأخ لأب يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Paman Kandung (العم الشقيق) ───
   hh('paman_kandung','paman_seayah','Paman kandung menghalangi Paman seayah (العم الشقيق يحجب العم لأب)'),
   hh('paman_kandung','sepupu_lk_paman_kandung','Paman kandung menghalangi Sepupu kandung (العم الشقيق يحجب ابن العم)'),
   hh('paman_kandung','sepupu_lk_paman_seayah','Paman kandung menghalangi Sepupu seayah (العم الشقيق يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Paman Seayah (العم لأب) ───
   hh('paman_seayah','sepupu_lk_paman_kandung','Paman seayah menghalangi Sepupu kandung (العم لأب يحجب ابن العم)'),
   hh('paman_seayah','sepupu_lk_paman_seayah','Paman seayah menghalangi Sepupu seayah (العم لأب يحجب ابن العم لأب)'),
+
+  // ─── Penghalang: Sepupu Laki-laki Paman Kandung (ابن العم الشقيق) ───
   hh('sepupu_lk_paman_kandung','sepupu_lk_paman_seayah','Sepupu kandung menghalangi Sepupu seayah (ابن العم الشقيق يحجب ابن العم لأب)'),
 ].map((r, i) => ({ ...r, id: i + 1 }))
 

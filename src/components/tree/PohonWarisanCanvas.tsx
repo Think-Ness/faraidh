@@ -47,11 +47,12 @@ import {
 } from './PohonWarisanSimulasiPanel'
 import { FaraidhEngine } from '@/lib/faraidh/engine'
 import { SEED_RULES } from '@/data/seed-rules'
-import type {
-  InputKasus,
-  InputAhliWaris,
-  HasilKalkulasi,
-  HasilPerAhliWaris,
+import {
+  type InputKasus,
+  type InputAhliWaris,
+  type HasilKalkulasi,
+  type HasilPerAhliWaris,
+  getHeirHierarchyRank,
 } from '@/lib/faraidh/types'
 
 type FilterMode =
@@ -129,14 +130,14 @@ export function PohonWarisanCanvas() {
 
     const inputAhliWarisList: InputAhliWaris[] = []
 
-    Object.entries(selectedHeirs).forEach(([nodeId, qty]) => {
-      if (qty <= 0) return
+    const sortedSelectedHeirs = Object.entries(selectedHeirs)
+      .filter(([, qty]) => qty > 0)
+      .sort(([a], [b]) => getHeirHierarchyRank(a) - getHeirHierarchyRank(b))
 
+    sortedSelectedHeirs.forEach(([nodeId, qty]) => {
       let engineCode = nodeId
       if (nodeId === 'pasangan') {
         engineCode = jenazahGender === 'L' ? 'istri' : 'suami'
-      } else if (nodeId === 'saudara_seibu') {
-        engineCode = 'saudara_lk_seibu'
       }
 
       inputAhliWarisList.push({
@@ -172,12 +173,35 @@ export function PohonWarisanCanvas() {
       if (heir.kode === 'istri' || heir.kode === 'suami') {
         map.set('pasangan', heir)
       }
-      if (heir.kode === 'saudara_lk_seibu' || heir.kode === 'saudari_seibu') {
-        map.set('saudara_seibu', heir)
+      if (heir.kode === 'saudara_seibu') {
+        const lkQty = selectedHeirs['saudara_lk_seibu'] || 0
+        const prQty = selectedHeirs['saudari_seibu'] || 0
+        if (lkQty > 0) {
+          map.set('saudara_lk_seibu', {
+            ...heir,
+            kode: 'saudara_lk_seibu',
+            nama_id: 'Saudara Laki-laki Seibu',
+            nama_arab: lkQty > 1 ? 'الإخوة لأم' : 'الأخ لأم',
+            jumlah_orang: lkQty,
+            saham_total_kelompok: (heir.saham_per_orang || 0) * lkQty,
+            nominal_total_kelompok: (heir.nominal_per_orang || 0) * lkQty,
+          })
+        }
+        if (prQty > 0) {
+          map.set('saudari_seibu', {
+            ...heir,
+            kode: 'saudari_seibu',
+            nama_id: 'Saudari Perempuan Seibu',
+            nama_arab: prQty > 1 ? 'الأخوات لأم' : 'الأخت لأم',
+            jumlah_orang: prQty,
+            saham_total_kelompok: (heir.saham_per_orang || 0) * prQty,
+            nominal_total_kelompok: (heir.nominal_per_orang || 0) * prQty,
+          })
+        }
       }
     })
     return map
-  }, [calculationResult])
+  }, [calculationResult, selectedHeirs])
 
   const totalSelectedHeirCount = useMemo(() => {
     return Object.values(selectedHeirs).reduce((a, b) => a + b, 0)
@@ -285,7 +309,8 @@ export function PohonWarisanCanvas() {
           node.id === 'cucu_pr' ||
           node.id === 'saudari_kandung' ||
           node.id === 'saudari_seayah' ||
-          node.id === 'saudara_seibu'
+          node.id === 'saudara_lk_seibu' ||
+          node.id === 'saudari_seibu'
         )
       case 'ashabah':
         return (
@@ -364,7 +389,7 @@ export function PohonWarisanCanvas() {
         { label: 'Ashabah', type: 'ashabah' },
       ]
     }
-    if (node.id === 'saudara_seibu') {
+    if (node.id === 'saudara_lk_seibu' || node.id === 'saudari_seibu') {
       return [
         { label: '1/6 (Tunggal)', type: 'fardh' },
         { label: '1/3 (Jamak)', type: 'fardh' },
@@ -873,12 +898,12 @@ export function PohonWarisanCanvas() {
           className="absolute origin-top-left transition-transform duration-75 ease-out"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-            width: 2800,
+            width: 3100,
             height: 1350,
           }}
         >
           {/* SVG Connector Lines Layer */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ overflow: 'visible' }}>
             {renderConnectors()}
             {renderUnionLines()}
           </svg>
@@ -1255,7 +1280,7 @@ export function PohonWarisanCanvas() {
                       ) : (
                         <div className="flex items-center gap-1 flex-wrap justify-center">
                           <span className="px-2 py-0.5 rounded text-[10.5px] font-extrabold bg-blue-600 text-white shadow-xs">
-                            Porsi: {heirResult?.pecahan || '-'}
+                            Porsi: {heirResult?.pecahan ? heirResult.pecahan.replace('_gabungan', '') : '-'}
                           </span>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
                             Saham: {heirResult?.saham_total_kelompok ?? heirResult?.saham_asal ?? '-'}
@@ -1324,7 +1349,19 @@ export function PohonWarisanCanvas() {
                   <span className="text-xs font-bold text-white truncate">
                     {totalSelectedHeirCount === 0 ? 'Pilih Ahli Waris di Kanvas' : `${totalSelectedHeirCount} Ahli Waris Terpilih`}
                   </span>
-                  {calculationResult?.asal_masalah ? (
+                  {calculationResult?.asal_masalah_aul ? (
+                    <span className="px-1.5 py-0.2 rounded bg-amber-900/80 text-amber-300 font-mono text-[10px] font-bold border border-amber-700">
+                      'Aul: {calculationResult.asal_masalah_pokok} → {calculationResult.asal_masalah_aul}
+                    </span>
+                  ) : calculationResult?.asal_masalah_radd ? (
+                    <span className="px-1.5 py-0.2 rounded bg-blue-900/80 text-blue-300 font-mono text-[10px] font-bold border border-blue-700">
+                      Radd: {calculationResult.asal_masalah_pokok} → {calculationResult.asal_masalah_radd}
+                    </span>
+                  ) : (calculationResult?.juz_sahm || 1) > 1 ? (
+                    <span className="px-1.5 py-0.2 rounded bg-purple-900/80 text-purple-300 font-mono text-[10px] font-bold border border-purple-700">
+                      Tashih: {calculationResult?.asal_masalah_tashih} (×{calculationResult?.juz_sahm})
+                    </span>
+                  ) : calculationResult?.asal_masalah ? (
                     <span className="px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono text-[10px] font-bold border border-slate-700">
                       AM: {calculationResult.asal_masalah}
                     </span>

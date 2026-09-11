@@ -149,6 +149,7 @@ export interface HasilKalkulasi {
 
   // Kasus Khusus (jika ada)
   kasus_khusus_aktif?: string
+  kasus_khusus_maklumat?: import('@/data/kasus-khusus-data').KasusKhususMaklumat
 
   // Asal Masalah & Perpindahan (Takhrij al-Mas'alah)
   asal_masalah_pokok: number
@@ -333,3 +334,50 @@ export function formatKelas(angkatan?: string, abjad?: string): string {
   }
   return `${angkatan}-${cleanAbjad}`
 }
+
+// ─── URUTAN HIERARKI SYAR'I AHLI WARIS (KITAB FARAIDH) ─────────────────────
+export const HEIR_HIERARCHY_ORDER: Record<string, number> = {
+  // 1. Pasangan (الزوجان)
+  suami: 1,
+  istri: 2,
+  pasangan: 3,
+
+  // 2. Usul (الأصول: الأبوان والأجداد)
+  ayah: 10,
+  ibu: 11,
+  kakek: 12,
+  nenek_ibu: 13,
+  nenek_ayah: 14,
+
+  // 3. Furu' (الفروع: الأولاد وأولاد البنين)
+  anak_lk: 20,
+  anak_pr: 21,
+  cucu_lk: 22,
+  cucu_pr: 23,
+
+  // 4. Hawasyi - Saudara (الحواشي: الإخوة والأخوات)
+  saudara_lk_kandung: 30,
+  saudari_kandung: 31,
+  saudara_lk_seayah: 32,
+  saudari_seayah: 33,
+  saudara_seibu: 34,
+  saudara_lk_seibu: 35,
+  saudari_seibu: 36,
+
+  // 5. Hawasyi - Keponakan (أبناء الإخوة)
+  keponakan_lk_kandung: 40,
+  keponakan_lk_seayah: 41,
+
+  // 6. Hawasyi - Paman (الأعمام)
+  paman_kandung: 50,
+  paman_seayah: 51,
+
+  // 7. Hawasyi - Sepupu (أبناء الأعمام)
+  sepupu_lk_paman_kandung: 60,
+  sepupu_lk_paman_seayah: 61,
+}
+
+export function getHeirHierarchyRank(kode: string): number {
+  return HEIR_HIERARCHY_ORDER[kode] ?? 99
+}
+

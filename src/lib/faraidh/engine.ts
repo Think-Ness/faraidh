@@ -15,19 +15,20 @@
 // Fase 9: Kalkulasi Nominal Akhir
 // ============================================================
 
-import type {
-  AhliWaris,
-  FurudhRule,
-  HijabHirmanRule,
-  HijabNuqshanRule,
-  AshabahRule,
-  KasusKhusus,
-  InputKasus,
-  InputAhliWaris,
-  HasilKalkulasi,
-  HasilPerAhliWaris,
-  LogEdukasi,
-  StatusPenyelesaian,
+import {
+  type AhliWaris,
+  type FurudhRule,
+  type HijabHirmanRule,
+  type HijabNuqshanRule,
+  type AshabahRule,
+  type KasusKhusus,
+  type InputKasus,
+  type InputAhliWaris,
+  type HasilKalkulasi,
+  type HasilPerAhliWaris,
+  type LogEdukasi,
+  type StatusPenyelesaian,
+  getHeirHierarchyRank,
 } from './types'
 
 import {
@@ -40,6 +41,8 @@ import {
   validasiWasiat,
   relasiMatematis,
 } from './math-utils'
+
+import { ENSIKLOPEDIA_KASUS_KHUSUS } from '@/data/kasus-khusus-data'
 
 // ============================================================
 // TIPE INTERNAL ENGINE
@@ -133,13 +136,45 @@ export class FaraidhEngine {
 
     // Bangun daftar aktif dari input
     const aktifMap = new Map<string, AhliWarisAktif>()
+    const hasSeibuLk = input.ahli_waris_list.some(i => i.kode === 'saudara_lk_seibu' && i.jumlah_orang > 0)
+    const hasSeibuPr = input.ahli_waris_list.some(i => i.kode === 'saudari_seibu' && i.jumlah_orang > 0)
+    const isMixedSeibu = hasSeibuLk && hasSeibuPr
+
     for (const inp of input.ahli_waris_list) {
       const master = masterMap.get(inp.kode)
       if (!master) continue
+
+      let namaId = master.nama_id
+      let namaArab = master.nama_arab
+
+      if (inp.kode === 'saudara_lk_seibu') {
+        if (isMixedSeibu) {
+          namaId = 'Saudara Laki-laki Seibu'
+          namaArab = inp.jumlah_orang > 1 ? 'الإخوة لأم (مشاركون)' : 'الأخ لأم'
+        } else if (inp.jumlah_orang > 1) {
+          namaId = 'Saudara Laki-laki Seibu'
+          namaArab = 'الإخوة لأم'
+        } else {
+          namaId = 'Saudara Laki-laki Seibu'
+          namaArab = 'الأخ لأم'
+        }
+      } else if (inp.kode === 'saudari_seibu') {
+        if (isMixedSeibu) {
+          namaId = 'Saudari Perempuan Seibu'
+          namaArab = inp.jumlah_orang > 1 ? 'الأخوات لأم (مشاركات)' : 'الأخت لأم'
+        } else if (inp.jumlah_orang > 1) {
+          namaId = 'Saudari Perempuan Seibu'
+          namaArab = 'الأخوات لأم'
+        } else {
+          namaId = 'Saudari Perempuan Seibu'
+          namaArab = 'الأخت لأم'
+        }
+      }
+
       aktifMap.set(inp.kode, {
         kode: inp.kode,
-        nama_id: master.nama_id,
-        nama_arab: master.nama_arab,
+        nama_id: namaId,
+        nama_arab: namaArab,
         jenis_kelamin: master.jenis_kelamin,
         jumlah_orang: inp.jumlah_orang,
         aktif: true,
@@ -147,6 +182,7 @@ export class FaraidhEngine {
     }
 
     const kodeAktif = () => Array.from(aktifMap.values()).filter(a => a.aktif).map(a => a.kode)
+    const totalSeibuAktif = () => (aktifMap.get('saudara_lk_seibu')?.aktif ? (aktifMap.get('saudara_lk_seibu')?.jumlah_orang || 0) : 0) + (aktifMap.get('saudari_seibu')?.aktif ? (aktifMap.get('saudari_seibu')?.jumlah_orang || 0) : 0)
 
     // ─── FASE 1: MAWANI' AL-IRTS ─────────────────────────────
     const gugurHalangan: string[] = []
@@ -204,8 +240,34 @@ export class FaraidhEngine {
     }
 
     // ─── FASE 3: HIJAB HIRMAN ─────────────────────────────────
+    const rankPenghalang: Record<string, number> = {
+      anak_lk: 1,
+      cucu_lk: 2,
+      ayah: 3,
+      ibu: 4,
+      kakek: 5,
+      anak_pr: 6,
+      cucu_pr: 7,
+      saudara_lk_kandung: 8,
+      saudari_kandung: 9,
+      saudara_lk_seayah: 10,
+      saudari_seayah: 11,
+      keponakan_lk_kandung: 12,
+      keponakan_lk_seayah: 13,
+      paman_kandung: 14,
+      paman_seayah: 15,
+      sepupu_lk_paman_kandung: 16,
+      sepupu_lk_paman_seayah: 17,
+    }
+
+    const sortedHijabRules = [...this.hijab_hirman_rules].sort((a, b) => {
+      const pA = this.ahli_waris_master.find(x => x.id === a.penghalang_id)?.kode || ''
+      const pB = this.ahli_waris_master.find(x => x.id === b.penghalang_id)?.kode || ''
+      return (rankPenghalang[pA] || 99) - (rankPenghalang[pB] || 99)
+    })
+
     const gugurHijab: string[] = []
-    for (const rule of this.hijab_hirman_rules) {
+    for (const rule of sortedHijabRules) {
       const penghalang = this.ahli_waris_master.find(a => a.id === rule.penghalang_id)
       const terhalang = this.ahli_waris_master.find(a => a.id === rule.terhalang_id)
       if (!penghalang || !terhalang) continue
@@ -225,7 +287,24 @@ export class FaraidhEngine {
         if (penghalang.kode === 'saudari_kandung' && terhalang.kode === 'saudari_seayah') {
           const jmlSkandung = aktifMap.get('saudari_kandung')?.jumlah_orang || 0
           const adaSaudaraSeayah = aktifMap.get('saudara_lk_seayah')?.aktif
-          if (jmlSkandung < 2 || adaSaudaraSeayah) continue
+          const isMaalGhair = aktifMap.get('anak_pr')?.aktif || aktifMap.get('cucu_pr')?.aktif
+          if (!isMaalGhair && (jmlSkandung < 2 || adaSaudaraSeayah)) continue
+        }
+        // Pengecekan khusus: Saudari Kandung / Saudari Seayah menghalangi kerabat laki-laki Hawasyi HANYA jika berstatus Ashabah Ma'al Ghair (bersama anak/cucu perempuan)
+        if (
+          (penghalang.kode === 'saudari_kandung' || penghalang.kode === 'saudari_seayah') &&
+          [
+            'saudara_lk_seayah',
+            'keponakan_lk_kandung',
+            'keponakan_lk_seayah',
+            'paman_kandung',
+            'paman_seayah',
+            'sepupu_lk_paman_kandung',
+            'sepupu_lk_paman_seayah',
+          ].includes(terhalang.kode)
+        ) {
+          const isMaalGhair = aktifMap.get('anak_pr')?.aktif || aktifMap.get('cucu_pr')?.aktif
+          if (!isMaalGhair) continue
         }
 
         terhalangAktif.aktif = false
@@ -257,6 +336,11 @@ export class FaraidhEngine {
       }
     }
 
+    // Hijab Nuqshan khusus: 2+ saudara/i (ikhwah) menurunkan porsi Ibu dari 1/3 ke 1/6
+    if (this.hitungTotalSaudara(aktifMap) >= 2 && aktifMap.get('ibu')?.aktif) {
+      nuqshanMap.set('ibu', '1/6')
+    }
+
     const nuqshanDetail: string[] = []
     nuqshanMap.forEach((pecahan_baru, kode) => {
       const aw = aktifMap.get(kode)
@@ -282,6 +366,8 @@ export class FaraidhEngine {
       this.alokasikanKasusKhusus(kasusKhususAktif, aktifMap, kodeAktif)
     } else {
       // 5a. Tentukan Ashabul Furudh
+      const totalSeibu = totalSeibuAktif()
+
       for (const [kode, aw] of aktifMap) {
         if (!aw.aktif) continue
         const master = masterMap.get(kode)!
@@ -289,6 +375,12 @@ export class FaraidhEngine {
 
         // Cek hijab nuqshan override
         const pecahan_nuqshan = nuqshanMap.get(kode)
+
+        // Penentuan porsi Saudara/i Seibu (Al-Ikhwah li Um)
+        if (kode === 'saudara_lk_seibu' || kode === 'saudari_seibu') {
+          aw.pecahan_aktif = totalSeibu >= 2 ? '1/3' : '1/6'
+          continue
+        }
 
         // Cari furudh rule yang cocok
         const pecahan = pecahan_nuqshan || this.cariPecahanFurudh(kode, jumlah, kodeAktif(), aktifMap)
@@ -357,18 +449,19 @@ export class FaraidhEngine {
       }
 
       // Kaidah Fiqh: Saudari Kandung yang berstatus Ashabah Ma'al Ghair bertindak seperti Saudara Laki-laki Kandung
-      // Sehingga MENGHIJAB: Saudara Lk Seayah, Saudari Seayah, Keponakan, dan Paman
+      // Kaidah Fiqh: Saudari Kandung yang berstatus Ashabah Ma'al Ghair bertindak seperti Saudara Laki-laki Kandung
+      // Sehingga MENGHIJAB: Saudara Lk Seayah, Saudari Seayah, Keponakan, Paman, dan Sepupu
       const skandungMaalGhair = aktifMap.get('saudari_kandung')
       if (skandungMaalGhair?.aktif && skandungMaalGhair.jenis_ashabah === 'maal_ghair') {
         const terhijabOlehMaalGhair = [
           'saudara_lk_seayah',
           'saudari_seayah',
-          'anak_saudara_lk_kandung',
-          'anak_saudara_lk_seayah',
+          'keponakan_lk_kandung',
+          'keponakan_lk_seayah',
           'paman_kandung',
           'paman_seayah',
-          'anak_paman_kandung',
-          'anak_paman_seayah'
+          'sepupu_lk_paman_kandung',
+          'sepupu_lk_paman_seayah'
         ]
         for (const kodeTerhijab of terhijabOlehMaalGhair) {
           const awT = aktifMap.get(kodeTerhijab)
@@ -386,12 +479,12 @@ export class FaraidhEngine {
       const sseayahMaalGhair = aktifMap.get('saudari_seayah')
       if (sseayahMaalGhair?.aktif && sseayahMaalGhair.jenis_ashabah === 'maal_ghair') {
         const terhijabOlehMaalGhairSeayah = [
-          'anak_saudara_lk_kandung',
-          'anak_saudara_lk_seayah',
+          'keponakan_lk_kandung',
+          'keponakan_lk_seayah',
           'paman_kandung',
           'paman_seayah',
-          'anak_paman_kandung',
-          'anak_paman_seayah'
+          'sepupu_lk_paman_kandung',
+          'sepupu_lk_paman_seayah'
         ]
         for (const kodeTerhijab of terhijabOlehMaalGhairSeayah) {
           const awT = aktifMap.get(kodeTerhijab)
@@ -426,6 +519,33 @@ export class FaraidhEngine {
         if (adaAnakPr && !adaAnakLk && !adaCucuLk) {
           kakekAw.pecahan_aktif = '1/6+sisa'
           kakekAw.jenis_ashabah = 'bin_nafsih'
+        }
+      }
+
+      // Pastikan semua kandidat Ashabah yang tidak terpilih dan tidak mendapat bagian furudh ditandai sebagai Mahjub
+      // KECUALI 6 Ahli Waris Utama yang tidak pernah gugur (Suami, Istri, Ayah, Ibu, Anak Lk, Anak Pr)
+      const TDK_PERNAH_GUGUR = ['suami', 'istri', 'ayah', 'ibu', 'anak_lk', 'anak_pr']
+      const anyFuruDzukur = aktifMap.get('anak_lk')?.aktif || aktifMap.get('cucu_lk')?.aktif
+      const anyUsulDzukur = aktifMap.get('ayah')?.aktif || aktifMap.get('kakek')?.aktif
+
+      for (const [, aw] of aktifMap) {
+        if (aw.aktif && !aw.pecahan_aktif && !aw.jenis_ashabah) {
+          if (TDK_PERNAH_GUGUR.includes(aw.kode)) {
+            continue
+          }
+          aw.aktif = false
+          let penghalangNama = 'ahli waris yang lebih berhak (Ashabah Prioritas)'
+          if (anyFuruDzukur) penghalangNama = aktifMap.get('anak_lk')?.aktif ? 'Anak Laki-laki' : 'Cucu Laki-laki'
+          else if (anyUsulDzukur) penghalangNama = aktifMap.get('ayah')?.aktif ? 'Ayah' : 'Kakek'
+          else if (ashabah_bin_nafsih_terpilih) {
+            const awP = aktifMap.get(ashabah_bin_nafsih_terpilih)
+            penghalangNama = awP?.nama_id || ashabah_bin_nafsih_terpilih
+          } else if (skandungMaalGhair?.aktif && skandungMaalGhair.jenis_ashabah === 'maal_ghair') {
+            penghalangNama = 'Saudari Sekandung (Ashabah Ma\'al Ghair)'
+          }
+          aw.alasan_tidak_aktif = `Terhalang (hijab hirman) oleh ${penghalangNama}`
+          aw.saham_total = 0
+          gugurHijab.push(`${aw.nama_id} → terhalang oleh ${penghalangNama}`)
         }
       }
     }
@@ -481,6 +601,7 @@ export class FaraidhEngine {
     let asal_masalah_aul: number | undefined = undefined
     let asal_masalah_radd: number | undefined = undefined
     let penjelasan_perpindahan = ''
+    let saham_seibu_total = 0
 
     if (kasusKhususAktif === 'gharrawain') {
       const suami = aktifMap.get('suami')
@@ -569,7 +690,10 @@ export class FaraidhEngine {
     } else {
       // Jalur perhitungan Ta'shil normal
       // Kumpulkan semua pecahan yang berlaku
+      const totalSeibu = totalSeibuAktif()
       const pecahan_list: string[] = []
+      let seibuAddedToPecahanList = false
+
       for (const [, aw] of aktifMap) {
         if (!aw.aktif || !aw.pecahan_aktif) continue
         if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
@@ -577,9 +701,14 @@ export class FaraidhEngine {
           pecahan_list.push('1/6')
           continue
         }
-        if (aw.pecahan_aktif === '1/3_gabungan') {
-          pecahan_list.push('1/3')
-          continue
+        if (aw.kode === 'saudara_lk_seibu' || aw.kode === 'saudari_seibu') {
+          if (totalSeibu >= 2) {
+            if (!seibuAddedToPecahanList) {
+              pecahan_list.push('1/3')
+              seibuAddedToPecahanList = true
+            }
+            continue
+          }
         }
         pecahan_list.push(aw.pecahan_aktif)
       }
@@ -590,12 +719,20 @@ export class FaraidhEngine {
       asal_masalah_pokok = asal_masalah
 
       // Hitung saham per ahli waris furudh
+      saham_seibu_total = totalSeibu >= 2 
+        ? pecahanKeSaham('1/3', asal_masalah) 
+        : (totalSeibu === 1 ? pecahanKeSaham('1/6', asal_masalah) : 0)
+
       for (const [, aw] of aktifMap) {
         if (!aw.aktif) continue
         if (!aw.pecahan_aktif || aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1') continue
-        const p = aw.pecahan_aktif === '1/3_gabungan' ? '1/3' :
-                  aw.pecahan_aktif === '1/6+sisa' ? '1/6' :
-                  aw.pecahan_aktif
+        if (aw.kode === 'saudara_lk_seibu' || aw.kode === 'saudari_seibu') {
+          if (totalSeibu >= 2) {
+            aw.saham_total = (saham_seibu_total * aw.jumlah_orang) / totalSeibu
+            continue
+          }
+        }
+        const p = aw.pecahan_aktif === '1/6+sisa' ? '1/6' : aw.pecahan_aktif
         aw.saham_total = pecahanKeSaham(p, asal_masalah)
       }
 
@@ -736,9 +873,55 @@ export class FaraidhEngine {
     const mahfudzat_detail: import('./types').MahfudzDetail[] = []
 
     // 1. Cek inkisar pada kelompok Ashabul Furudh
+    let seibuInkisaryChecked = false
+    const totalSeibu = totalSeibuAktif()
+
     for (const [, aw] of aktifMap) {
-      if (!aw.aktif || !aw.saham_total || aw.jumlah_orang <= 1) continue
-      if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1' || aw.pecahan_aktif === '1/3_gabungan' || aw.pecahan_aktif === '1/3_sisa') continue
+      if (!aw.aktif || !aw.saham_total) continue
+      if (aw.pecahan_aktif === 'sisa' || aw.pecahan_aktif === 'sisa_2:1' || aw.pecahan_aktif === '1/3_sisa') continue
+
+      if ((aw.kode === 'saudara_lk_seibu' || aw.kode === 'saudari_seibu') && totalSeibu >= 2) {
+        if (!seibuInkisaryChecked) {
+          seibuInkisaryChecked = true
+          const sahamSeibu = Math.round(saham_seibu_total)
+          const kepalaSeibu = totalSeibu
+          if (sahamSeibu % kepalaSeibu !== 0) {
+            const rel = gcd(sahamSeibu, kepalaSeibu) > 1 ? 'muwafaqah' : 'mubayanah'
+            const rel_arab = rel === 'muwafaqah' ? 'توافق' : 'تباين'
+            const m = hitungMahfudzat(sahamSeibu, kepalaSeibu)
+            if (m > 1) {
+              const hasSeibuLk = !!(aktifMap.get('saudara_lk_seibu')?.aktif && (aktifMap.get('saudara_lk_seibu')?.jumlah_orang || 0) > 0)
+              const hasSeibuPr = !!(aktifMap.get('saudari_seibu')?.aktif && (aktifMap.get('saudari_seibu')?.jumlah_orang || 0) > 0)
+              const isMixed = hasSeibuLk && hasSeibuPr
+              const namaIdSeibu = isMixed
+                ? 'Saudara & Saudari Seibu (Ikhwah li Umm)'
+                : hasSeibuLk
+                ? 'Saudara Laki-laki Seibu'
+                : 'Saudari Perempuan Seibu'
+              const namaArabSeibu = isMixed
+                ? 'الإخوة والأخوات لأم'
+                : hasSeibuLk
+                ? 'الإخوة لأم'
+                : 'الأخوات لأم'
+
+              mahfudzat.push(m)
+              mahfudzat_detail.push({
+                kode: isMixed ? 'seibu_gabungan' : hasSeibuLk ? 'saudara_lk_seibu' : 'saudari_seibu',
+                nama_id: namaIdSeibu,
+                nama_arab: namaArabSeibu,
+                saham_asal: sahamSeibu,
+                kepala: kepalaSeibu,
+                relasi: rel,
+                relasi_arab: rel_arab,
+                mahfudz: m,
+              })
+            }
+          }
+        }
+        continue
+      }
+
+      if (aw.jumlah_orang <= 1) continue
       const saham = Math.round(aw.saham_total)
       const kepala = aw.jumlah_orang
       if (saham % kepala !== 0) {
@@ -909,6 +1092,11 @@ export class FaraidhEngine {
         for (const [, aw] of aktifMap) {
           if (!aw.aktif || !aw.pecahan_aktif) continue
           if (aw.pecahan_aktif !== 'sisa' && aw.pecahan_aktif !== 'sisa_2:1' && aw.pecahan_aktif !== '1/6+sisa') {
+            if ((aw.kode === 'saudara_lk_seibu' || aw.kode === 'saudari_seibu') && totalSeibu >= 2) {
+              const totalSahamSeibuTashih = saham_seibu_total * juz_sahm
+              aw.saham_total = Math.round((totalSahamSeibuTashih * aw.jumlah_orang) / totalSeibu)
+              continue
+            }
             aw.saham_total = Math.round((aw.saham_asal || 0) * juz_sahm)
           }
         }
@@ -1026,7 +1214,69 @@ export class FaraidhEngine {
       return aw.jenis_ashabah ? 'Menerima sisa harta berdasarkan kaidah Ashabah.' : 'Menerima bagian pasti Furudh Muqaddarah.'
     }
 
+    let seibuProcessed = false
+
     for (const [, aw] of aktifMap) {
+      if (isMixedSeibu && (aw.kode === 'saudara_lk_seibu' || aw.kode === 'saudari_seibu')) {
+        if (!seibuProcessed) {
+          seibuProcessed = true
+          const lk = aktifMap.get('saudara_lk_seibu')
+          const pr = aktifMap.get('saudari_seibu')
+          const isAnyActive = (lk?.aktif ?? false) || (pr?.aktif ?? false)
+          const totalPeople = (lk?.jumlah_orang || 0) + (pr?.jumlah_orang || 0)
+
+          if (!isAnyActive) {
+            const isHijab = lk?.alasan_tidak_aktif?.includes('Terhalang') || pr?.alasan_tidak_aktif?.includes('Terhalang')
+            hasil.push({
+              kode: 'saudara_seibu',
+              nama_id: 'Ikhwah li Umm (Saudara/i Seibu)',
+              nama_arab: 'الإخوة والأخوات لأم',
+              jenis_kelamin: 'L',
+              jumlah_orang: totalPeople,
+              status: isHijab ? 'gugur_hijab' : 'gugur_halangan',
+              keterangan: lk?.alasan_tidak_aktif || pr?.alasan_tidak_aktif,
+              alasan_gugur: lk?.alasan_tidak_aktif || pr?.alasan_tidak_aktif,
+              pecahan: 'mahjub',
+              pecahan_arab: 'م (محجوب)',
+              saham_asal: 0,
+              saham_tashih: 0,
+              saham_total_kelompok: 0,
+              saham_per_orang: 0,
+              nominal_per_orang: 0,
+              nominal_total_kelompok: 0,
+            })
+          } else {
+            const saham_total = (lk?.saham_total || 0) + (pr?.saham_total || 0)
+            const saham_per_orang = totalPeople > 0 ? saham_total / totalPeople : 0
+            const nominal_total = (saham_total / asal_masalah_tashih) * harta_bersih
+            const nominal_per_orang = totalPeople > 0 ? nominal_total / totalPeople : 0
+
+            const rumusNominal = `Rp ${Math.round(nominal_total).toLocaleString('id-ID')} ÷ ${totalPeople} Jiwa (${lk?.jumlah_orang || 0} Lk + ${pr?.jumlah_orang || 0} Pr) = Rp ${Math.round(nominal_per_orang).toLocaleString('id-ID')}`
+
+            hasil.push({
+              kode: 'saudara_seibu',
+              nama_id: 'Ikhwah li Umm (Saudara/i Seibu)',
+              nama_arab: 'الإخوة والأخوات لأم',
+              jenis_kelamin: 'L',
+              jumlah_orang: totalPeople,
+              status: 'furudh',
+              pecahan: '1/3',
+              pecahan_arab: '١/٣ (الثلث)',
+              alasan_syarat: 'Mendapat 1/3 (Syuraka\' fit-Tsuluts) karena berjumlah 2 orang atau lebih dan dibagi rata (1:1) tanpa membedakan jenis kelamin.',
+              saham_asal: Math.round(saham_seibu_total * 100) / 100,
+              mahfudz: lk?.mahfudz || pr?.mahfudz,
+              saham_tashih: Math.round(saham_total),
+              saham_per_orang: Math.round(saham_per_orang * 100) / 100,
+              saham_total_kelompok: Math.round(saham_total * 100) / 100,
+              nominal_per_orang: Math.round(nominal_per_orang),
+              nominal_total_kelompok: Math.round(nominal_total),
+              rumus_nominal_per_orang: rumusNominal,
+            })
+          }
+        }
+        continue
+      }
+
       if (!aw.aktif) {
         const isHijab = aw.alasan_tidak_aktif?.includes('Terhalang')
         hasil.push({
@@ -1087,6 +1337,9 @@ export class FaraidhEngine {
       })
     }
 
+    // Urutkan hasil akhir secara baku berdasarkan Hierarki Syar'i (Pasangan -> Usul -> Furu' -> Hawasyi)
+    hasil.sort((a, b) => getHeirHierarchyRank(a.kode) - getHeirHierarchyRank(b.kode))
+
     log.push({
       fase: 9,
       judul: 'Kalkulasi Nominal Akhir',
@@ -1105,6 +1358,7 @@ export class FaraidhEngine {
       wasiat: wasiat_efektif,
       total_harta_bersih: harta_bersih,
       kasus_khusus_aktif: kasusKhususAktif,
+      kasus_khusus_maklumat: kasusKhususAktif ? ENSIKLOPEDIA_KASUS_KHUSUS[kasusKhususAktif] : undefined,
       asal_masalah_pokok,
       asal_masalah,
       asal_masalah_aul,
@@ -1170,9 +1424,22 @@ export class FaraidhEngine {
       }
     }
 
-    // requires_presence_of_any
+    // requires_presence_of_any & or_requires_saudara_min
     const presAny = kondisi.requires_presence_of_any as string[] | undefined
-    if (presAny) {
+    const saudaraMin = kondisi.or_requires_saudara_min as number | undefined
+
+    if (presAny && saudaraMin !== undefined) {
+      let adaPres = false
+      for (const k of presAny) {
+        if (k === 'saudara_2_atau_lebih_gabungan') {
+          if (this.hitungTotalSaudara(aktifMap) >= 2) { adaPres = true; break }
+        } else if (kodeAktif.includes(k)) {
+          adaPres = true; break
+        }
+      }
+      const adaSaudaraMin = this.hitungTotalSaudara(aktifMap) >= saudaraMin
+      if (!adaPres && !adaSaudaraMin) return false
+    } else if (presAny) {
       let ada = false
       for (const k of presAny) {
         if (k === 'saudara_2_atau_lebih_gabungan') {
@@ -1182,13 +1449,8 @@ export class FaraidhEngine {
         }
       }
       if (!ada) return false
-    }
-
-    // or_requires_saudara_min
-    const saudaraMin = kondisi.or_requires_saudara_min as number | undefined
-    if (saudaraMin && this.hitungTotalSaudara(aktifMap) < saudaraMin) {
-      // Ini bersifat OR dengan requires_presence_of_any — kalau sudah ada anak/cucu, kondisi or ini tidak relevan
-      // Tangani di logika furudh_rule ibu secara khusus
+    } else if (saudaraMin !== undefined) {
+      if (this.hitungTotalSaudara(aktifMap) < saudaraMin) return false
     }
 
     // requires_saudara_max: ibu dapat 1/3 hanya jika saudara < 2

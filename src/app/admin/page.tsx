@@ -90,6 +90,7 @@ import type {
 import { FaraidhEngine } from '@/lib/faraidh/engine'
 import { SEED_RULES } from '@/data/seed-rules'
 import { JadwalSyubbakSoal } from '@/components/latihan/JadwalSyubbakSoal'
+import { KasusKhususMaklumatCard } from '@/components/calculator/KasusKhususMaklumatCard'
 
 const ADMIN_PIN = '1234' // Bisa diganti sesuai env
 const LS_PIN_KEY = 'faraidh_admin_unlocked'
@@ -1748,6 +1749,15 @@ export default function AdminPage() {
                         </div>
                       )}
 
+                      {/* Special Case Educational Context */}
+                      {testResult.kasus_khusus_aktif && (
+                        <KasusKhususMaklumatCard
+                          kasusKode={testResult.kasus_khusus_aktif}
+                          kasusMaklumat={testResult.kasus_khusus_maklumat}
+                          defaultExpanded={true}
+                        />
+                      )}
+
                     </div>
 
                     {/* ─── CLASSICAL TEXTBOOK TABLE PREVIEW (جدول الشباك) ─── */}
@@ -2737,36 +2747,38 @@ export default function AdminPage() {
         {activeTab === 'kasus_khusus' && (
           <div className="space-y-4 animate-fadeIn">
             
-            <div className="bg-white p-4 rounded-xl border border-slate-200">
-              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                Kasus Khusus Faraidh (المسائل الملقبة)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Override kaidah normal berdasarkan fatwa shahabat & ijma' ulama
-              </p>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <span>Ensiklopedia Kasus Khusus Faraidh (المسائل الملقبة الخاصة)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Maklumat lengkap sejarah, latar belakang peristiwa, asbab &amp; &apos;illat syar&apos;i, atsar sahabat, serta kaidah studi santri.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs">
+                3 Kasus Masyhur + &apos;Aul &amp; Radd
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {(adminData?.kasusKhusus || []).map((k: KasusKhusus) => (
-                <div key={k.id} className="card p-4 space-y-2 flex flex-col justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono text-emerald-700 font-bold uppercase">{k.kode}</span>
-                    <h4 className="font-extrabold text-sm text-slate-900">{k.nama}</h4>
-                    <p className="text-xs text-slate-600 mt-1 bg-slate-50 p-2.5 rounded-lg leading-relaxed">
-                      {k.aturan_khusus}
-                    </p>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="badge-emerald text-[10px]">Ijma' Syafi'i</span>
-                    <button
-                      onClick={() => handleCopy(k.aturan_khusus)}
-                      className="text-slate-400 hover:text-slate-700 text-xs"
-                    >
-                      {copiedText === k.aturan_khusus ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              ))}
+            {/* 3 Main Special Cases */}
+            <div className="space-y-4">
+              <KasusKhususMaklumatCard kasusKode="gharrawain" defaultExpanded={true} />
+              <KasusKhususMaklumatCard kasusKode="musytarakah" defaultExpanded={false} />
+              <KasusKhususMaklumatCard kasusKode="akdariyyah" defaultExpanded={false} />
+            </div>
+
+            {/* General Adjustments: 'Aul and Radd */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 mt-6 shadow-2xs space-y-3">
+              <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 flex items-center gap-2">
+                <Scale className="w-4 h-4 text-blue-600" />
+                <span>Kaidah Penyesuaian Asal Masalah: Al-&apos;Aul &amp; Ar-Radd (العول والرد)</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <KasusKhususMaklumatCard penyesuaianJenis="aul" />
+                <KasusKhususMaklumatCard penyesuaianJenis="radd" />
+              </div>
             </div>
 
           </div>

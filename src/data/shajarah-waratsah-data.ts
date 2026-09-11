@@ -96,7 +96,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Rasulullah SAW menetapkan bagian bagi nenek sebesar 1/6 jika tidak ada ibu di bawahnya.',
     dalil_sumber: 'HR. Abu Dawud & An-Nasa\'i',
     maklumat_edukasi: 'Nenek dari Ibu hanya terhalang oleh Ibu kandung. Tidak terhalang oleh Ayah.',
-    canvas_pos: { x: 60, y: 60 }
+    canvas_pos: { x: 400, y: 60 }
   },
   {
     id: 'nenek_ayah',
@@ -127,7 +127,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Abu Bakar Ash-Shiddiq ra memberikan kepada nenek 1/6 ketika tidak ada ibu.',
     dalil_sumber: 'Atsar Sahabat / Kitab Faraidh KMI',
     maklumat_edukasi: 'Nenek dari Ayah memiliki 2 pihak penghalang: terhalang oleh IBU dan terhalang oleh AYAH.',
-    canvas_pos: { x: 380, y: 60 }
+    canvas_pos: { x: 700, y: 60 }
   },
   {
     id: 'kakek',
@@ -173,7 +173,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Sesungguhnya Nabi SAW memberikan kepada kakek seperenam harta warisan.',
     dalil_sumber: 'HR. Abu Dawud & Tirmidzi',
     maklumat_edukasi: 'Kakek Shahih adalah kakek yang nasabnya tidak diselingi wanita. Terhalang total jika ada Ayah.',
-    canvas_pos: { x: 680, y: 60 }
+    canvas_pos: { x: 1000, y: 60 }
   },
   {
     id: 'paman_kandung',
@@ -209,7 +209,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Berikanlah bagian-bagian warisan kepada yang berhak, dan apa yang tersisa adalah untuk laki-laki yang paling dekat nasabnya.',
     dalil_sumber: 'HR. Bukhari & Muslim',
     maklumat_edukasi: 'Paman sekandung adalah saudara kandung dari ayah. Lebih kuat dari paman seayah.',
-    canvas_pos: { x: 2160, y: 300 }
+    canvas_pos: { x: 2460, y: 300 }
   },
   {
     id: 'paman_seayah',
@@ -245,7 +245,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari & Muslim',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Gugur jika ada paman sekandung.',
-    canvas_pos: { x: 2440, y: 300 }
+    canvas_pos: { x: 2760, y: 300 }
   },
 
   // ─── LEVEL 2: ORANG TUA, SEPUPU & SAUDARA SEAYAH (Y: 300) ───
@@ -288,7 +288,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Jika dia tidak mempunyai anak dan dia diwarisi oleh kedua orang tuanya, maka ibunya mendapat sepertiga. Jika dia mempunyai saudara-saudara, ibunya mendapat seperenam.',
     dalil_sumber: 'QS. An-Nisa\': 11',
     maklumat_edukasi: 'Ibu tidak pernah gugur. Keberadaan ibu menghalangi SEMUA nenek shahih.',
-    canvas_pos: { x: 230, y: 300 }
+    canvas_pos: { x: 400, y: 300 }
   },
   {
     id: 'ayah',
@@ -334,7 +334,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Dan untuk kedua orang tua, masing-masing mendapat seperenam dari harta peninggalan jika dia (yang meninggal) mempunyai anak.',
     dalil_sumber: 'QS. An-Nisa\': 11',
     maklumat_edukasi: 'Ayah adalah penghalang jalur usul terkuat. Menggugurkan kakek, nenek jalur ayah, seluruh saudara, paman, dan keponakan.',
-    canvas_pos: { x: 530, y: 300 }
+    canvas_pos: { x: 800, y: 300 }
   },
   {
     id: 'sepupu_lk_paman_kandung',
@@ -370,7 +370,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Hanya anak laki-laki paman yang mewarisi. Sepupu perempuan termasuk Dzawil Arham.',
-    canvas_pos: { x: 2160, y: 580 }
+    canvas_pos: { x: 2460, y: 580 }
   },
   {
     id: 'sepupu_lk_paman_seayah',
@@ -406,7 +406,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Merupakan urutan ashabah nasab nomor 12 di Kitab Faraidh KMI Gontor.',
-    canvas_pos: { x: 2440, y: 580 }
+    canvas_pos: { x: 2760, y: 580 }
   },
   {
     id: 'saudara_lk_seayah',
@@ -442,7 +442,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari & Muslim',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Saudara seayah terhijab oleh saudara sekandung.',
-    canvas_pos: { x: 1600, y: 580 }
+    canvas_pos: { x: 1860, y: 580 }
   },
   {
     id: 'saudari_seayah',
@@ -483,17 +483,17 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Nabi SAW menetapkan untuk saudari seayah bagian 1/6 sebagai penyempurna dua pertiga.',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Gugur jika ada 2 saudari kandung, kecuali jika ditarik oleh saudara seayah.',
-    canvas_pos: { x: 1880, y: 580 }
+    canvas_pos: { x: 2160, y: 580 }
   },
 
   // ─── LEVEL 3: PEWARIS, PASANGAN, SAUDARA KANDUNG & SAUDARA SEIBU (Y: 540) ───
   {
-    id: 'saudara_seibu',
+    id: 'saudara_lk_seibu',
     kode: 'saudara_lk_seibu',
-    emoji: '👥',
-    nama_arab: 'الإِخْوَة لِأُمّ',
-    nama_latin: 'Al-Ikhwah li Umm',
-    nama_id: 'Saudara / Saudari Seibu',
+    emoji: '🧔',
+    nama_arab: 'الأَخ لِأُمّ',
+    nama_latin: 'Al-Akh li Umm',
+    nama_id: 'Saudara Laki-laki Seibu',
     kategori: 'hawasyi_ikhwah',
     kategori_label: 'Saudara Seibu',
     badge_color: 'indigo',
@@ -511,17 +511,53 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
       },
       {
         porsi: '1/3',
-        syarat: '2 orang atau lebih (laki-laki dan perempuan berbagi RATA 1:1).',
+        syarat: '2 orang atau lebih bersama saudara/i seibu (berbagi RATA 1:1).',
         penjelasan: 'QS. An-Nisa\': 12 — Syuraka\' fit-Tsuluts.'
       }
     ],
     dihijab_oleh: ['anak_lk', 'anak_pr', 'cucu_lk', 'cucu_pr', 'ayah', 'kakek'],
     menghijab_siapa: [],
     dalil_arab: 'وَإِنْ كَانَ رَجُلٌ يُورَثُ كَلَالَةً أَوِ امْرَأَةٌ وَلَهُ أَخٌ أَوْ أُخْتٌ فَلِكُلِّ وَاحِدٍ مِنْهُمَا السُّدُسُ فَإِنْ كَانُوا أَكْثَرَ مِنْ ذَلِكَ فَهُمْ شُرَكَاءُ فِي الثُّلُثِ',
-    dalil_arti: 'Jika seseorang meninggal dalam keadaan kalalah dan mempunyai saudara/i seibu, maka bagian masing-masing adalah 1/6. Jika lebih dari seorang, mereka bersama-sama dalam bagian 1/3.',
+    dalil_arti: 'Jika seseorang meninggal dalam keadaan kalalah dan mempunyai seorang saudara laki-laki atau seorang saudara perempuan (seibu), maka bagi masing-masing seperenam. Jika lebih dari seorang, mereka bersama-sama dalam 1/3.',
     dalil_sumber: 'QS. An-Nisa\': 12',
-    maklumat_edukasi: 'Satu-satunya ahli waris di mana laki-laki dan perempuan mendapat porsi sama persis tanpa kelipatan 2:1.',
+    maklumat_edukasi: 'Laki-laki dan perempuan mendapat porsi sama persis (1:1) tanpa kelipatan 2:1.',
     canvas_pos: { x: 60, y: 580 }
+  },
+  {
+    id: 'saudari_seibu',
+    kode: 'saudari_seibu',
+    emoji: '🧕',
+    nama_arab: 'الأُخْت لِأُمّ',
+    nama_latin: 'Al-Ukht li Umm',
+    nama_id: 'Saudari Perempuan Seibu',
+    kategori: 'hawasyi_ikhwah',
+    kategori_label: 'Saudari Seibu',
+    badge_color: 'indigo',
+    jenis_kelamin: 'P',
+    tidak_pernah_gugur: false,
+    status_waris_utama: 'Ashabul Furudh (Bagi Rata 1:1)',
+    porsi_ringkas: ['1/6 (Tunggal)', '1/3 (Jamak Berserikat)'],
+    daftar_porsi: ['1/6 (Tunggal)', '1/3 (Rata 1:1)'],
+    parents_label: 'Ibu Kandung',
+    syarat_porsi: [
+      {
+        porsi: '1/6',
+        syarat: '1 orang tunggal dalam keadaan kalalah (tanpa usul laki & furu\').',
+        penjelasan: 'QS. An-Nisa\': 12'
+      },
+      {
+        porsi: '1/3',
+        syarat: '2 orang atau lebih bersama saudara/i seibu (berbagi RATA 1:1).',
+        penjelasan: 'QS. An-Nisa\': 12 — Syuraka\' fit-Tsuluts.'
+      }
+    ],
+    dihijab_oleh: ['anak_lk', 'anak_pr', 'cucu_lk', 'cucu_pr', 'ayah', 'kakek'],
+    menghijab_siapa: [],
+    dalil_arab: 'وَإِنْ كَانَ رَجُلٌ يُورَثُ كَلَالَةً أَوِ امْرَأَةٌ وَلَهُ أَخٌ أَوْ أُخْتٌ فَلِكُلِّ وَاحِدٍ مِنْهُمَا السُّدُسُ فَإِنْ كَانُوا أَكْثَرَ مِنْ ذَلِكَ فَهُمْ شُرَكَاءُ فِي الثُّلُثِ',
+    dalil_arti: 'Jika seseorang meninggal dalam keadaan kalalah dan mempunyai seorang saudara laki-laki atau seorang saudara perempuan (seibu), maka bagi masing-masing seperenam. Jika lebih dari seorang, mereka bersama-sama dalam 1/3.',
+    dalil_sumber: 'QS. An-Nisa\': 12',
+    maklumat_edukasi: 'Saudari seibu mendapat porsi sama rata (1:1) dengan saudara laki-laki seibu.',
+    canvas_pos: { x: 360, y: 580 }
   },
   {
     id: 'mayyit',
@@ -553,7 +589,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Allah mensyariatkan bagimu tentang (pembagian warisan untuk) anak-anakmu: bagian seorang anak laki-laki sama dengan bagian dua anak perempuan.',
     dalil_sumber: 'QS. An-Nisa\': 11',
     maklumat_edukasi: 'Pewaris adalah titik pusat penentuan hubungan nasab semua ahli waris.',
-    canvas_pos: { x: 380, y: 580 }
+    canvas_pos: { x: 660, y: 580 }
   },
   {
     id: 'pasangan',
@@ -599,7 +635,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Para istri memperoleh seperempat harta jika kamu tidak mempunyai anak. Jika kamu mempunyai anak, maka para istri memperoleh seperdelapan.',
     dalil_sumber: 'QS. An-Nisa\': 12',
     maklumat_edukasi: 'Pasangan terikat melalui nikah sahih. Termasuk 6 golongan yang TIDAK PERNAH gugur.',
-    canvas_pos: { x: 680, y: 580 }
+    canvas_pos: { x: 960, y: 580 }
   },
   {
     id: 'saudara_lk_kandung',
@@ -635,7 +671,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Dan dia (saudara laki-laki) mewarisi seluruh harta saudara perempuannya jika dia tidak mempunyai anak.',
     dalil_sumber: 'QS. An-Nisa\': 176',
     maklumat_edukasi: 'Saudara sekandung menghalangi seluruh saudara seayah dan paman.',
-    canvas_pos: { x: 1040, y: 580 }
+    canvas_pos: { x: 1260, y: 580 }
   },
   {
     id: 'saudari_kandung',
@@ -681,7 +717,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Jika seseorang meninggal dunia tanpa anak tetapi mempunyai seorang saudara perempuan, maka bagiannya adalah seperdua harta.',
     dalil_sumber: 'QS. An-Nisa\': 176',
     maklumat_edukasi: 'Saudari kandung bersama anak perempuan berubah menjadi Ashabah Ma\'al Ghair dan menghalangi saudara seayah & paman.',
-    canvas_pos: { x: 1320, y: 580 }
+    canvas_pos: { x: 1560, y: 580 }
   },
 
   // ─── LEVEL 4: FURU' 1 & KEPONAKAN KANDUNG (Y: 780) ───
@@ -724,7 +760,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Allah mensyariatkan bagimu tentang pembagian warisan anak-anakmu: bagian seorang anak laki-laki sama dengan dua anak perempuan.',
     dalil_sumber: 'QS. An-Nisa\': 11',
     maklumat_edukasi: 'Anak laki-laki tidak pernah gugur. Menghalangi cucu, seluruh saudara, paman, dan keponakan.',
-    canvas_pos: { x: 380, y: 840 }
+    canvas_pos: { x: 660, y: 840 }
   },
   {
     id: 'anak_pr',
@@ -765,7 +801,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Jika anak itu semuanya perempuan lebih dari dua, bagi mereka 2/3 harta; jika seorang saja, ia memperoleh separuh harta.',
     dalil_sumber: 'QS. An-Nisa\': 11',
     maklumat_edukasi: 'Anak perempuan tidak pernah gugur.',
-    canvas_pos: { x: 680, y: 840 }
+    canvas_pos: { x: 960, y: 840 }
   },
   {
     id: 'keponakan_lk_kandung',
@@ -801,7 +837,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Hanya anak laki-laki dari saudara laki-laki yang menjadi ahli waris.',
-    canvas_pos: { x: 1040, y: 840 }
+    canvas_pos: { x: 1260, y: 840 }
   },
 
   // ─── LEVEL 5: FURU' 2 & KEPONAKAN SEAYAH (Y: 1020) ───
@@ -839,7 +875,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Dinamakan "Al-Qarib al-Mubarak" bagi cucu perempuan ketika terancam gugur oleh 2 anak perempuan.',
-    canvas_pos: { x: 240, y: 1100 }
+    canvas_pos: { x: 510, y: 1100 }
   },
   {
     id: 'cucu_pr',
@@ -885,7 +921,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'Nabi SAW menetapkan bagi anak perempuan separuh, dan bagi cucu perempuan seperenam sebagai penyempurna dua pertiga.',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Hanya cucu dari anak laki-laki yang menjadi ahli waris.',
-    canvas_pos: { x: 520, y: 1100 }
+    canvas_pos: { x: 810, y: 1100 }
   },
   {
     id: 'keponakan_lk_seayah',
@@ -921,7 +957,7 @@ export const SHAJARAH_WARATSAH_NODES: WaritsNode[] = [
     dalil_arti: 'HR. Bukhari',
     dalil_sumber: 'HR. Bukhari',
     maklumat_edukasi: 'Gugur jika ada keponakan laki-laki sekandung.',
-    canvas_pos: { x: 1600, y: 840 }
+    canvas_pos: { x: 1860, y: 840 }
   }
 ]
 
@@ -967,7 +1003,8 @@ export const SHAJARAH_CONNECTIONS: ConnectionEdge[] = [
 
   // 2. Jalur Ibu Kandung
   { id: 'edge_nenek_ibu_ibu', from: 'nenek_ibu', to: 'ibu', type: 'child', label: 'Nasab Ibu' },
-  { id: 'edge_ibu_saudara_seibu', from: 'ibu', to: 'saudara_seibu', type: 'child', label: 'Anak dari Ibu' },
+  { id: 'edge_ibu_saudara_lk_seibu', from: 'ibu', to: 'saudara_lk_seibu', type: 'child', label: 'Anak Laki-laki dari Ibu' },
+  { id: 'edge_ibu_saudari_seibu', from: 'ibu', to: 'saudari_seibu', type: 'child', label: 'Anak Perempuan dari Ibu' },
 
   // 3. Jalur Ayah Sendiri (Saudara Seayah)
   { id: 'edge_ayah_saudara_seayah', from: 'ayah', to: 'saudara_lk_seayah', type: 'collateral', label: 'Saudara Seayah' },
