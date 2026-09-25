@@ -1211,6 +1211,16 @@ export class FaraidhEngine {
         }
         return 'Mendapat 1/6 karena 1 orang tunggal tanpa keturunan dan tanpa ayah/kakek.'
       }
+      if (aw.kode === 'saudara_lk_seayah') {
+        return 'Ashabah bin-nafsih setelah saudara sekandung.'
+      }
+      if (aw.kode === 'saudari_seayah') {
+        if (listKode.includes('saudara_lk_seayah')) return 'Ashabah bil-ghair bersama saudara laki-laki seayah (2:1).'
+        if (hasAnakPr || hasCucuPr) return 'Ashabah ma\'al-ghair (menjadi ashabah bersama anak/cucu perempuan).'
+        if (listKode.includes('saudari_kandung')) return 'Mendapat 1/6 sebagai pelengkap 2/3 (takmilah ats-tsulutsain) bersama 1 saudari kandung.'
+        if (aw.jumlah_orang > 1) return 'Mendapat 2/3 karena 2+ orang tanpa anak, cucu, ayah, kakek, atau saudara kandung/seayah laki-laki.'
+        return 'Mendapat 1/2 karena tunggal tanpa anak, cucu, ayah, kakek, atau saudara kandung/seayah laki-laki.'
+      }
       return aw.jenis_ashabah ? 'Menerima sisa harta berdasarkan kaidah Ashabah.' : 'Menerima bagian pasti Furudh Muqaddarah.'
     }
 
@@ -1421,6 +1431,15 @@ export class FaraidhEngine {
         } else if (kodeAktif.includes(k)) {
           return false
         }
+      }
+    }
+
+    // requires_presence_of_exact: e.g. { anak_pr: 1 } or { saudari_kandung: 1 }
+    const presExact = kondisi.requires_presence_of_exact as Record<string, number> | undefined
+    if (presExact) {
+      for (const [k, count] of Object.entries(presExact)) {
+        const aw = aktifMap.get(k)
+        if (!aw?.aktif || (aw.jumlah_orang || 0) !== count) return false
       }
     }
 

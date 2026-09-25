@@ -72,6 +72,7 @@ export const FURUDH_RULES: FurudhRule[] = [
   { id: 19, ahli_waris_id: ID('nenek_ibu'), pecahan: '1/6', syarat_kondisi: { requires_absence_of: ['ibu'] }, keterangan: 'Nenek jalur ibu 1/6' },
   { id: 20, ahli_waris_id: ID('nenek_ayah'), pecahan: '1/6', syarat_kondisi: { requires_absence_of: ['ibu'] }, keterangan: 'Nenek jalur ayah 1/6' },
   { id: 21, ahli_waris_id: ID('cucu_pr'), pecahan: '1/6', syarat_kondisi: { requires_presence_of_exact: { anak_pr: 1 }, requires_absence_of: ['anak_lk','cucu_lk'] }, keterangan: 'Cucu perempuan pelengkap 2/3' },
+  { id: 22, ahli_waris_id: ID('saudari_seayah'), pecahan: '1/6', syarat_kondisi: { requires_presence_of_exact: { saudari_kandung: 1 }, requires_absence_of: ['saudara_lk_seayah','saudara_lk_kandung','ayah','kakek','anak_lk','anak_pr','cucu_lk','cucu_pr'] }, keterangan: 'Saudari seayah pelengkap 2/3 bersama 1 saudari kandung' },
   { id: 23, ahli_waris_id: ID('saudara_lk_seibu'), pecahan: '1/6', syarat_kondisi: { syarat_jumlah_tunggal: true }, keterangan: 'Saudara seibu tunggal 1/6' },
   { id: 24, ahli_waris_id: ID('saudari_seibu'), pecahan: '1/6', syarat_kondisi: { syarat_jumlah_tunggal: true }, keterangan: 'Saudari seibu tunggal 1/6' },
 ]
